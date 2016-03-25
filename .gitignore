@@ -1,0 +1,5 @@
+# NetBeans build output
+build/
+
+# Compiled Java code
+*.class
