@@ -3,3 +3,4 @@ build/
 
 # Compiled Java code
 *.class
+/dist/
