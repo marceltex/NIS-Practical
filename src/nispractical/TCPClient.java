@@ -23,6 +23,7 @@ public class TCPClient {
         Socket clientSocket = new Socket("localhost", 6789);
         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        System.out.println("The client started. Please type your message below:");
         sentence = inFromUser.nextLine();
         outToServer.writeBytes(sentence + '\n');
         modifiedSentence = inFromServer.readLine();
