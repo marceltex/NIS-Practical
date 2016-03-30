@@ -1,8 +1,8 @@
 package nispractical;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -28,11 +28,11 @@ public class TCPServer {
             Socket connectionSocket = welcomeSocket.accept();
             BufferedReader inFromClient
                     = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+            PrintStream outToClient = new PrintStream(connectionSocket.getOutputStream());
             clientSentence = inFromClient.readLine();
             System.out.println("Received: " + clientSentence);
             capitalisedSentence = clientSentence.toUpperCase();
-            outToClient.writeBytes(capitalisedSentence);
+            outToClient.println(capitalisedSentence);
         }
     }
 }
