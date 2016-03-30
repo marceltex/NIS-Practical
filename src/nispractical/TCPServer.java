@@ -17,22 +17,25 @@ public class TCPServer {
      * @throws Exception if there are connectivity issues
      */
     public static void main(String[] args) throws Exception {
-        String clientSentence;
-        String capitalisedSentence;
-        
-        ServerSocket welcomeSocket = new ServerSocket(6789);
-        
-        System.out.println("The server started. To stop it press <CTRL><C>.");
+        String clientMessage;
+        String capitalisedMessage;
+
+        ServerSocket serverSocket = new ServerSocket(2222);
+
+        System.out.println("The has server started. To stop it press <CTRL><C>.");
+
+        Socket clientSocket = serverSocket.accept();
+
+        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        PrintStream outToClient = new PrintStream(clientSocket.getOutputStream());
 
         while (true) {
-            Socket connectionSocket = welcomeSocket.accept();
-            BufferedReader inFromClient
-                    = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            PrintStream outToClient = new PrintStream(connectionSocket.getOutputStream());
-            clientSentence = inFromClient.readLine();
-            System.out.println("Received: " + clientSentence);
-            capitalisedSentence = clientSentence.toUpperCase();
-            outToClient.println(capitalisedSentence);
+            clientMessage = inFromClient.readLine();
+
+            System.out.println("Received: " + clientMessage);
+
+            capitalisedMessage = clientMessage.toUpperCase();
+            outToClient.println(capitalisedMessage);
         }
     }
 }
