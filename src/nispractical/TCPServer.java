@@ -22,7 +22,7 @@ public class TCPServer {
 
         ServerSocket serverSocket = new ServerSocket(2222);
 
-        System.out.println("The has server started. To stop it press <CTRL><C>.");
+        System.out.println("The server has started. To stop it press <CTRL><C>.");
 
         Socket clientSocket = serverSocket.accept();
 
