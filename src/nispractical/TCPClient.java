@@ -27,6 +27,10 @@ public class TCPClient {
         outToServer.writeBytes(sentence + '\n');
         modifiedSentence = inFromServer.readLine();
         System.out.println("FROM SERVER: " + modifiedSentence);
+        
+        // Close output/input streams and scoket
+        outToServer.close();
+        inFromServer.close();
         clientSocket.close();
     }
 }
