@@ -14,10 +14,12 @@ public class TCPServer {
 
     /**
      * @param args the command line arguments
+     * @throws Exception if there are connectivity issues
      */
     public static void main(String[] args) throws Exception {
         String clientSentence;
         String capitalisedSentence;
+        
         ServerSocket welcomeSocket = new ServerSocket(6789);
 
         while (true) {
