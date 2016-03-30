@@ -1,8 +1,8 @@
 package nispractical;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -12,24 +12,40 @@ import java.util.Scanner;
  */
 public class TCPClient {
 
+    public static final String IP_ADDRESS = "localhost";
+
     /**
      * @param args the command line arguments
-     * @throws Exception 
+     * @throws Exception if there are connectivity issues
      */
     public static void main(String[] args) throws Exception {
-        String sentence;
-        String modifiedSentence;
-        Scanner inFromUser = new Scanner(System.in);
-        Socket clientSocket = new Socket("localhost", 6789);
-        DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+        String message;
+        String modifiedMessage;
+
+        Socket clientSocket = new Socket(IP_ADDRESS, 2222);
+
+        PrintStream outToServer = new PrintStream(clientSocket.getOutputStream());
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        System.out.println("The client started. Please type your message below:");
-        sentence = inFromUser.nextLine();
-        outToServer.writeBytes(sentence + '\n');
-        modifiedSentence = inFromServer.readLine();
-        System.out.println("FROM SERVER: " + modifiedSentence);
-        
-        // Close output/input streams and scoket
+
+        Scanner inFromUser = new Scanner(System.in);
+
+        System.out.println("Type your message below: (Type 'q' to stop client)");
+        message = inFromUser.nextLine();
+
+        outToServer.println(message);
+
+        while ((modifiedMessage = inFromServer.readLine()) != null) {
+            System.out.println("FROM SERVER: " + modifiedMessage);
+            if (modifiedMessage.equals("Q")) {
+                break;
+            }
+            System.out.println("Type your message below: (Type 'q' to stop client)");
+            message = inFromUser.nextLine();
+
+            outToServer.println(message);
+        }
+
+        // Close output/input streams and socket
         outToServer.close();
         inFromServer.close();
         clientSocket.close();
