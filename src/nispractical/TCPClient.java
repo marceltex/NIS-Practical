@@ -14,7 +14,7 @@ public class TCPClient {
 
     /**
      * @param args the command line arguments
-     * @throws Exception 
+     * @throws Exception if there are connectivity issues
      */
     public static void main(String[] args) throws Exception {
         String sentence;
@@ -29,7 +29,7 @@ public class TCPClient {
         modifiedSentence = inFromServer.readLine();
         System.out.println("FROM SERVER: " + modifiedSentence);
         
-        // Close output/input streams and scoket
+        // Close output/input streams and socket
         outToServer.close();
         inFromServer.close();
         clientSocket.close();
