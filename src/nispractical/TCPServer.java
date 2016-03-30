@@ -21,6 +21,8 @@ public class TCPServer {
         String capitalisedSentence;
         
         ServerSocket welcomeSocket = new ServerSocket(6789);
+        
+        System.out.println("The server started. To stop it press <CTRL><C>.");
 
         while (true) {
             Socket connectionSocket = welcomeSocket.accept();
