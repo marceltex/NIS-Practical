@@ -11,8 +11,10 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 /**
- *
+ * A TCP Client that will transmit a message securely, using the PGP protocol.
+ * 
  * @author Marcel Teixeira
+ * @version 0.4
  */
 public class TCPClient {
 
