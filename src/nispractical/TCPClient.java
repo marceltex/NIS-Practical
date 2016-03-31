@@ -1,9 +1,13 @@
 package nispractical;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 /**
@@ -13,41 +17,62 @@ import java.util.Scanner;
 public class TCPClient {
 
     public static final String IP_ADDRESS = "localhost";
+    public static final int PORT = 2222;
 
     /**
      * @param args the command line arguments
-     * @throws Exception if there are connectivity issues
      */
-    public static void main(String[] args) throws Exception {
-        String message;
+    public static void main(String[] args) {
+        String message = "";
         String modifiedMessage;
 
-        Socket clientSocket = new Socket(IP_ADDRESS, 2222);
+        Socket clientSocket = null;
+        PrintStream outToServer = null;
+        BufferedReader inFromServer = null;
 
-        PrintStream outToServer = new PrintStream(clientSocket.getOutputStream());
-        BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        // Open a socket on port 2222. Open the input and output streams
+        try {
+            System.out.println("The client has started.");
+            clientSocket = new Socket(IP_ADDRESS, PORT);
+            System.out.println("Successfully connected to server at IP Address: "
+                    + IP_ADDRESS + " using Port Number: " + PORT);
 
-        Scanner inFromUser = new Scanner(System.in);
-
-        System.out.println("Type your message below: (Type 'q' to stop client)");
-        message = inFromUser.nextLine();
-
-        outToServer.println(message);
-
-        while ((modifiedMessage = inFromServer.readLine()) != null) {
-            System.out.println("FROM SERVER: " + modifiedMessage);
-            if (modifiedMessage.equals("Q")) {
-                break;
-            }
-            System.out.println("Type your message below: (Type 'q' to stop client)");
-            message = inFromUser.nextLine();
-
-            outToServer.println(message);
+            outToServer = new PrintStream(clientSocket.getOutputStream());
+            inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        } catch (UnknownHostException e) {
+            System.err.println("Can't find the host");
+        } catch (IOException e) {
+            System.err.println("Couldn't connect to server at IP Address: "
+                    + IP_ADDRESS + " using Port Number: " + PORT);
         }
 
-        // Close output/input streams and socket
-        outToServer.close();
-        inFromServer.close();
-        clientSocket.close();
+        // If statement ensures that everything has been initialised successfully 
+        if (clientSocket != null && outToServer != null && inFromServer != null) {
+            try {
+            Scanner read = new Scanner(new File("messages/message.txt"));
+
+            while (read.hasNext()) {
+                message += read.nextLine();
+            }
+            
+            System.out.println("Plain text message to be securely transmitted:\n\"" + message + "\"");
+
+            outToServer.println(message);
+            modifiedMessage = inFromServer.readLine();
+            
+            System.out.println("FROM SERVER: " + modifiedMessage);
+
+            // Close output/input streams and socket
+            outToServer.close();
+            inFromServer.close();
+            clientSocket.close();
+            } catch (FileNotFoundException e) {
+                System.err.println("'message.txt' not found in messages directory");
+            } catch (UnknownHostException e) {
+                System.err.println("Trying to connect to unknown host: " + e);
+            } catch (IOException e) {
+                System.err.println("IOException: " + e);
+            }
+        }
     }
 }
