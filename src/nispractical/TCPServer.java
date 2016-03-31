@@ -11,16 +11,17 @@ import java.net.Socket;
  * @author Marcel Teixeira
  */
 public class TCPServer {
+    
+    public static final int PORT = 2222;
 
     /**
      * @param args the command line arguments
-     * @throws Exception if there are connectivity issues
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         String clientMessage;
         String capitalisedMessage;
 
-        ServerSocket serverSocket = new ServerSocket(2222);
+        ServerSocket serverSocket = new ServerSocket(PORT);
 
         System.out.println("The server has started. To stop it press <CTRL><C>.");
 
