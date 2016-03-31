@@ -57,7 +57,7 @@ public class TCPClient {
                 message += read.nextLine();
             }
             
-            System.out.println("Plain text message to be securely transmitted:\n\"" + message + "\"");
+            System.out.println("Plain text message to be transmitted:\n\"" + message + "\"");
 
             outToServer.println(message);
             modifiedMessage = inFromServer.readLine();
