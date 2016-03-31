@@ -8,9 +8,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * A TCP Server that will decrypt a message that was encrypted by the client 
+ * A TCP Server that will decrypt a message that was encrypted by the client
  * using the PGP protocol.
- * 
+ *
  * @author Marcel Teixeira
  * @version 0.4
  */
@@ -51,10 +51,12 @@ public class TCPServer {
             while (true) {
                 clientMessage = inFromClient.readLine();
 
-                System.out.println("Received: " + clientMessage);
+                if (clientMessage != null) {
+                    System.out.println("Received: " + clientMessage);
 
-                capitalisedMessage = clientMessage.toUpperCase();
-                outToClient.println(capitalisedMessage);
+                    capitalisedMessage = clientMessage.toUpperCase();
+                    outToClient.println(capitalisedMessage);
+                }
             }
         } catch (IOException e) {
             System.err.println(e);
