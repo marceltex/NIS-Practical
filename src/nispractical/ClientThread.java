@@ -45,19 +45,21 @@ public class ClientThread extends Thread {
                 // Client up. Set the current thread variable to null so that a 
                 // new client can be accepted by the server.
                 if (clientMessage == null) {
-                    for (int i = 0; i < maxClientsCount; i++) {
-                        if (threads[i] == this) {
-                            threads[i] = null;
+                    synchronized (this) {
+                        for (int i = 0; i < maxClientsCount; i++) {
+                            if (threads[i] == this) {
+                                threads[i] = null;
+                            }
                         }
                     }
                     break;
                 }
-                    System.out.println("Received: " + clientMessage);
+                System.out.println("Received: " + clientMessage);
 
-                    capitalisedMessage = clientMessage.toUpperCase();
-                    outToClient.println(capitalisedMessage);
+                capitalisedMessage = clientMessage.toUpperCase();
+                outToClient.println(capitalisedMessage);
             }
-            
+
             // Close the input and output streams and close the socket
             inFromClient.close();
             outToClient.close();
