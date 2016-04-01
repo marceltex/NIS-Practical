@@ -26,8 +26,6 @@ public class TCPServer {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-//        BufferedReader inFromClient = null;
-//        PrintStream outToClient = null;
         // Open a server socket on port 2222
         try {
             serverSocket = new ServerSocket(PORT);
