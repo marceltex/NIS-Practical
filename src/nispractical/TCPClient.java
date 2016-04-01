@@ -66,7 +66,7 @@ public class TCPClient {
                 
                 String sha1Hash = DigestUtils.sha1Hex(message);
                 
-                System.out.println("1) SHA-1 Hash of message: " + sha1Hash + "\n");
+                System.out.println("1) SHA-1 Hash of the message: " + sha1Hash + "\n");
 
                 outToServer.println(message);
                 modifiedMessage = inFromServer.readLine();
