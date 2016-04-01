@@ -12,7 +12,7 @@ import java.net.Socket;
  * using the PGP protocol.
  *
  * @author Marcel Teixeira
- * @version 0.4
+ * @version 0.5
  */
 public class TCPServer {
 
