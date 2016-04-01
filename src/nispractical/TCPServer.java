@@ -1,8 +1,6 @@
 package nispractical;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -12,24 +10,22 @@ import java.net.Socket;
  * using the PGP protocol.
  *
  * @author Marcel Teixeira
- * @version 0.4
+ * @version 0.5
  */
 public class TCPServer {
 
-    public static final int PORT = 2222;
+    private static final int PORT = 2222;
+
+    private static ServerSocket serverSocket = null;
+    private static Socket clientSocket = null;
+
+    private static final int maxClientsCount = 10;
+    private static final ClientThread[] threads = new ClientThread[maxClientsCount];
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        String clientMessage;
-        String capitalisedMessage;
-
-        ServerSocket serverSocket = null;
-        BufferedReader inFromClient = null;
-        PrintStream outToClient = null;
-        Socket clientSocket = null;
-
         // Open a server socket on port 2222
         try {
             serverSocket = new ServerSocket(PORT);
@@ -40,26 +36,26 @@ public class TCPServer {
                     + PORT + ". Error message produced: " + e);
         }
 
-        // Create a socket object from the ServerSocket to listen to and accept
-        // connections. Open input and output streams.
-        try {
-            clientSocket = serverSocket.accept();
-
-            inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            outToClient = new PrintStream(clientSocket.getOutputStream());
-
-            while (true) {
-                clientMessage = inFromClient.readLine();
-
-                if (clientMessage != null) {
-                    System.out.println("Received: " + clientMessage);
-
-                    capitalisedMessage = clientMessage.toUpperCase();
-                    outToClient.println(capitalisedMessage);
+        // Create a socket for each connection and pass it to a new client thread
+        while (true) {
+            try {
+                clientSocket = serverSocket.accept();
+                int i = 0;
+                for (i = 0; i < maxClientsCount; i++) {
+                    if (threads[i] == null) {
+                        (threads[i] = new ClientThread(clientSocket, threads)).start();
+                        break;
+                    }
                 }
+                if (i == maxClientsCount) {
+                    PrintStream outToClient = new PrintStream(clientSocket.getOutputStream());
+                    outToClient.println("Server is too busy. Tr again later.");
+                    outToClient.close();
+                    clientSocket.close();
+                }
+            } catch (IOException e) {
+                System.err.println(e);
             }
-        } catch (IOException e) {
-            System.err.println(e);
         }
     }
 }
