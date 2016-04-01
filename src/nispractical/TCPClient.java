@@ -9,6 +9,7 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
+import org.apache.commons.codec.digest.DigestUtils;
 
 /**
  * A TCP Client that will transmit a message securely, using the PGP protocol.
@@ -52,12 +53,20 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File("messages/message.txt"));
-
+                
                 while (read.hasNext()) {
                     message += read.nextLine();
                 }
 
-                System.out.println("Plain text message to be transmitted:\n\"" + message + "\"");
+                System.out.println("Plain text message to be transmitted:\n\"" + message + "\"\n");
+                
+                System.out.println("**************************");
+                System.out.println("* PGP Encryption Started *");
+                System.out.println("**************************\n");
+                
+                String sha1Hash = DigestUtils.sha1Hex(message);
+                
+                System.out.println("1) SHA-1 Hash of message: " + sha1Hash + "\n");
 
                 outToServer.println(message);
                 modifiedMessage = inFromServer.readLine();
@@ -70,10 +79,13 @@ public class TCPClient {
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
+                e.printStackTrace();
             } catch (UnknownHostException e) {
-                System.err.println("Trying to connect to unknown host: " + e);
+                System.err.println("Trying to connect to unknown host");
+                e.printStackTrace();
             } catch (IOException e) {
-                System.err.println("IOException: " + e);
+                System.err.println("IOException");
+                e.printStackTrace();
             }
         }
     }
