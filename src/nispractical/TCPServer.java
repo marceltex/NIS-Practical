@@ -18,6 +18,12 @@ public class TCPServer {
 
     private static final int PORT = 2222;
 
+    private static ServerSocket serverSocket = null;
+    private static Socket clientSocket = null;
+
+    private static final int maxClientsCount = 10;
+    private static final ClientThread[] threads = new ClientThread[maxClientsCount];
+
     /**
      * @param args the command line arguments
      */
@@ -25,10 +31,8 @@ public class TCPServer {
         String clientMessage;
         String capitalisedMessage;
 
-        ServerSocket serverSocket = null;
-        BufferedReader inFromClient = null;
-        PrintStream outToClient = null;
-        Socket clientSocket = null;
+//        BufferedReader inFromClient = null;
+//        PrintStream outToClient = null;
 
         // Open a server socket on port 2222
         try {
@@ -40,26 +44,39 @@ public class TCPServer {
                     + PORT + ". Error message produced: " + e);
         }
 
-        // Create a socket object from the ServerSocket to listen to and accept
-        // connections. Open input and output streams.
-        try {
-            clientSocket = serverSocket.accept();
-
-            inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            outToClient = new PrintStream(clientSocket.getOutputStream());
-
-            while (true) {
-                clientMessage = inFromClient.readLine();
-
-                if (clientMessage != null) {
-                    System.out.println("Received: " + clientMessage);
-
-                    capitalisedMessage = clientMessage.toUpperCase();
-                    outToClient.println(capitalisedMessage);
+        // Create a socket for each connection and pass it to a new client thread
+        while (true) {
+            try {
+                clientSocket = serverSocket.accept();
+                int i = 0;
+                for (i = 0; i < maxClientsCount; i++) {
+                    if (threads[i] == null) {
+                        (threads[i] = new ClientThread(clientSocket, threads)).start();
+                        break;
+                    }
                 }
+                if (i == maxClientsCount) {
+                    PrintStream outToClient = new PrintStream(clientSocket.getOutputStream());
+                    outToClient.println("Server is too busy. Tr again later.");
+                    outToClient.close();
+                }
+                
+//                inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+//                outToClient = new PrintStream(clientSocket.getOutputStream());
+//
+//                while (true) {
+//                    clientMessage = inFromClient.readLine();
+//
+//                    if (clientMessage != null) {
+//                        System.out.println("Received: " + clientMessage);
+//
+//                        capitalisedMessage = clientMessage.toUpperCase();
+//                        outToClient.println(capitalisedMessage);
+//                    }
+//                }
+            } catch (IOException e) {
+                System.err.println(e);
             }
-        } catch (IOException e) {
-            System.err.println(e);
         }
     }
 }
