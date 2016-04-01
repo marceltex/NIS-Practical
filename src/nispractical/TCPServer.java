@@ -16,7 +16,7 @@ import java.net.Socket;
  */
 public class TCPServer {
 
-    public static final int PORT = 2222;
+    private static final int PORT = 2222;
 
     /**
      * @param args the command line arguments

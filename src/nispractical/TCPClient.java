@@ -18,8 +18,8 @@ import java.util.Scanner;
  */
 public class TCPClient {
 
-    public static final String IP_ADDRESS = "localhost";
-    public static final int PORT = 2222;
+    private static final String IP_ADDRESS = "localhost";
+    private static final int PORT = 2222;
 
     /**
      * @param args the command line arguments
