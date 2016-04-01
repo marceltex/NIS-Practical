@@ -26,12 +26,8 @@ public class TCPServer {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        String clientMessage;
-        String capitalisedMessage;
-
 //        BufferedReader inFromClient = null;
 //        PrintStream outToClient = null;
-
         // Open a server socket on port 2222
         try {
             serverSocket = new ServerSocket(PORT);
@@ -57,21 +53,8 @@ public class TCPServer {
                     PrintStream outToClient = new PrintStream(clientSocket.getOutputStream());
                     outToClient.println("Server is too busy. Tr again later.");
                     outToClient.close();
+                    clientSocket.close();
                 }
-                
-//                inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-//                outToClient = new PrintStream(clientSocket.getOutputStream());
-//
-//                while (true) {
-//                    clientMessage = inFromClient.readLine();
-//
-//                    if (clientMessage != null) {
-//                        System.out.println("Received: " + clientMessage);
-//
-//                        capitalisedMessage = clientMessage.toUpperCase();
-//                        outToClient.println(capitalisedMessage);
-//                    }
-//                }
             } catch (IOException e) {
                 System.err.println(e);
             }
