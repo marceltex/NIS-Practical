@@ -42,7 +42,7 @@ public class ClientThread extends Thread {
             while (true) {
                 clientMessage = inFromClient.readLine();
 
-                // Client up. Set the current thread variable to null so that a 
+                // Client up. Set the current thread variable to null so that a
                 // new client can be accepted by the server.
                 if (clientMessage == null) {
                     synchronized (this) {

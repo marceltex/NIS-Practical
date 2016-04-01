@@ -12,7 +12,7 @@ import java.util.Scanner;
 
 /**
  * A TCP Client that will transmit a message securely, using the PGP protocol.
- * 
+ *
  * @author Marcel Teixeira
  * @version 0.4
  */
@@ -48,26 +48,26 @@ public class TCPClient {
                     + IP_ADDRESS + " using Port Number: " + PORT);
         }
 
-        // If statement ensures that everything has been initialised successfully 
+        // If statement ensures that everything has been initialised successfully
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
-            Scanner read = new Scanner(new File("messages/message.txt"));
+                Scanner read = new Scanner(new File("messages/message.txt"));
 
-            while (read.hasNext()) {
-                message += read.nextLine();
-            }
-            
-            System.out.println("Plain text message to be transmitted:\n\"" + message + "\"");
+                while (read.hasNext()) {
+                    message += read.nextLine();
+                }
 
-            outToServer.println(message);
-            modifiedMessage = inFromServer.readLine();
-            
-            System.out.println("FROM SERVER: " + modifiedMessage);
+                System.out.println("Plain text message to be transmitted:\n\"" + message + "\"");
 
-            // Close output/input streams and socket
-            outToServer.close();
-            inFromServer.close();
-            clientSocket.close();
+                outToServer.println(message);
+                modifiedMessage = inFromServer.readLine();
+
+                System.out.println("FROM SERVER: " + modifiedMessage);
+
+                // Close output/input streams and socket
+                outToServer.close();
+                inFromServer.close();
+                clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
             } catch (UnknownHostException e) {
