@@ -106,4 +106,16 @@ public class TCPClient {
             }
         }
     }
+    
+    /**
+     * Method used to encrypt the hash of the message using the RSA algorithm in
+     * ECB mode with PKCS1 padding.
+     * 
+     * @param privateKey Client's private key used to encrypt the hash.
+     * @param hash Hash to be encrypted
+     * @return Encrypted hash
+     */
+    public static String encryptHash(String privateKey, String hash) {
+        return "";
+    }
 }
