@@ -80,4 +80,16 @@ public class ClientThread extends Thread {
             System.err.println(e);
         }
     }
+    
+    /**
+     * Method used to decrypt the hash of the message using the RSA algorithm in
+     * ECB mode with PKCS1 padding.
+     * 
+     * @param publicKey Client's private key required to decrypt the hash
+     * @param encryptedHash Encrypted hash to be decrypted
+     * @return Decrypted hash (Plain text hash)
+     */
+    private String decryptHash(String publicKey, String encryptedHash) {
+        return "";
+    }
 }
