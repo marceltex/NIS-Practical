@@ -5,8 +5,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import javax.crypto.Cipher;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * Client Thread class used to create Client Thread objects of the clients
@@ -82,14 +89,32 @@ public class ClientThread extends Thread {
     }
     
     /**
-     * Method used to decrypt the hash of the message using the RSA algorithm in
-     * ECB mode with PKCS1 padding.
-     * 
-     * @param publicKey Client's private key required to decrypt the hash
-     * @param encryptedHash Encrypted hash to be decrypted
-     * @return Decrypted hash (Plain text hash)
+     * Method used to decrypt the hash of the message that was encrypted using
+     * the RSA algorithm in ECB mode with PKCS1 padding.
+     *
+     * @param publicKey Client's public key used to encrypt the hash
+     * @param encryptedHash Hash to be decrypted
+     * @return Plain text version of hash (Decrypted hash)
      */
-    private String decryptHash(String publicKey, String encryptedHash) {
-        return "";
+    private String decryptHash(String publicKey, byte[] encryptedHash) {
+        String plainText = null;
+
+        Security.addProvider(new BouncyCastleProvider());
+
+        try {
+            byte[] decodedKeyBytes = Base64.getDecoder().decode(publicKey);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey pubKey = keyFactory.generatePublic(keySpec);
+
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
+            cipher.init(cipher.DECRYPT_MODE, pubKey);
+
+            byte[] cipherTextBytes = cipher.doFinal(encryptedHash);
+            plainText = new String(cipherTextBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return plainText;
     }
 }
