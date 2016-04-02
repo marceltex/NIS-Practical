@@ -1,6 +1,7 @@
 package nispractical;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -29,6 +30,8 @@ public class ClientThread extends Thread {
     private Socket clientSocket = null;
     private final ClientThread[] threads;
     private int maxClientsCount;
+    
+    private DataInputStream is = null;
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -57,9 +60,22 @@ public class ClientThread extends Thread {
             // Create input and output streams for this client.
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintStream(clientSocket.getOutputStream());
+            
+            is = new DataInputStream(clientSocket.getInputStream());
 
             while (true) {
                 clientMessage = inFromClient.readLine();
+                
+                int length = is.readInt();
+                byte[] encryptedHash = null;
+                if (length > 0) {
+                    encryptedHash = new byte[length];
+                    is.readFully(encryptedHash, 0, encryptedHash.length);
+                }
+                
+                String decryptedHash = decryptHash(publicKeyRing.get("client"), encryptedHash);
+                
+                System.out.println("Decrypted hash: " + decryptedHash);
 
                 // Clean up. Set the current thread variable to null so that a
                 // new client can be accepted by the server.

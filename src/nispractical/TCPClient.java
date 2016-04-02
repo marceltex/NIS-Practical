@@ -1,6 +1,7 @@
 package nispractical;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -56,6 +57,7 @@ public class TCPClient {
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
+        DataOutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
         try {
@@ -66,6 +68,7 @@ public class TCPClient {
 
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            os = new DataOutputStream(clientSocket.getOutputStream());
         } catch (UnknownHostException e) {
             System.err.println("Can't find the host");
         } catch (IOException e) {
@@ -90,16 +93,24 @@ public class TCPClient {
 
                 String sha1Hash = DigestUtils.sha1Hex(message);
 
-                System.out.println("1) SHA-1 Hash of the message: " + sha1Hash + "\n");
+                System.out.println("1) SHA-1 hash of the message: " + sha1Hash + "\n");
+                
+                byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
+                
+                System.out.println("2) Encrypted hash of the message: " + new String(encryptedHash, "UTF-8") + "\n");
 
-                outToServer.println(message);
-                modifiedMessage = inFromServer.readLine();
+                os.writeInt(encryptedHash.length);
+                os.write(encryptedHash);
+                
+                //outToServer.println(message);
+                //modifiedMessage = inFromServer.readLine();
 
-                System.out.println("FROM SERVER: " + modifiedMessage);
+                //System.out.println("FROM SERVER: " + modifiedMessage);
 
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
+                os.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
