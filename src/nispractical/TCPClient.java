@@ -1,17 +1,26 @@
 package nispractical;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import javax.crypto.Cipher;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * A TCP Client that will transmit a message securely, using the PGP protocol.
@@ -49,6 +58,7 @@ public class TCPClient {
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
+        //DataOutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
         try {
@@ -59,6 +69,7 @@ public class TCPClient {
 
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            //os = new DataOutputStream(clientSocket.getOutputStream());
         } catch (UnknownHostException e) {
             System.err.println("Can't find the host");
         } catch (IOException e) {
@@ -70,6 +81,7 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File("messages/message.txt"));
+                FileOutputStream fileOutputStream = new FileOutputStream("messages/message.sig");
 
                 while (read.hasNext()) {
                     message += read.nextLine();
@@ -83,8 +95,19 @@ public class TCPClient {
 
                 String sha1Hash = DigestUtils.sha1Hex(message);
 
-                System.out.println("1) SHA-1 Hash of the message: " + sha1Hash + "\n");
-
+                System.out.println("1) SHA-1 hash of the message: " + sha1Hash + "\n");
+                
+                byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
+                
+                System.out.println("2) Encrypted SHA-1 hash:");
+                System.out.println(new String(encryptedHash, "UTF-8") + "\n");
+                
+                fileOutputStream.write(encryptedHash);
+                
+                fileOutputStream.close();
+//                os.writeInt(encryptedHash.length);
+//                os.write(encryptedHash);
+                
                 outToServer.println(message);
                 modifiedMessage = inFromServer.readLine();
 
@@ -93,6 +116,7 @@ public class TCPClient {
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
+                //os.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
@@ -105,5 +129,34 @@ public class TCPClient {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Method used to encrypt the hash of the message using the RSA algorithm in
+     * ECB mode with PKCS1 padding.
+     *
+     * @param privateKey Client's private key used to encrypt the hash
+     * @param hash Hash to be encrypted
+     * @return Byte array of RSA encrypted hash
+     */
+    private static byte[] encryptHash(String privateKey, String hash) {
+        byte[] cipherText = null;
+
+        Security.addProvider(new BouncyCastleProvider());
+
+        try {
+            byte[] decodedKeyBytes = Base64.getDecoder().decode(privateKey);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey privKey = keyFactory.generatePrivate(keySpec);
+
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
+            cipher.init(cipher.ENCRYPT_MODE, privKey);
+
+            cipherText = cipher.doFinal(hash.getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cipherText;
     }
 }

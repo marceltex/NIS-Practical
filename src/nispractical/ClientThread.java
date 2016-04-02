@@ -1,12 +1,20 @@
 package nispractical;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import javax.crypto.Cipher;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * Client Thread class used to create Client Thread objects of the clients
@@ -22,6 +30,8 @@ public class ClientThread extends Thread {
     private Socket clientSocket = null;
     private final ClientThread[] threads;
     private int maxClientsCount;
+    
+    //private DataInputStream is = null;
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -40,7 +50,7 @@ public class ClientThread extends Thread {
     }
 
     public void run() {
-        String clientMessage;
+        String clientMessage = null;
         String capitalisedMessage;
 
         int maxClientsCount = this.maxClientsCount;
@@ -50,11 +60,24 @@ public class ClientThread extends Thread {
             // Create input and output streams for this client.
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintStream(clientSocket.getOutputStream());
+            
+            //is = new DataInputStream(clientSocket.getInputStream());
 
             while (true) {
                 clientMessage = inFromClient.readLine();
+                
+                //int length = is.readInt();
+                //byte[] encryptedHash = null;
+                //if (length > 0) {
+                //    encryptedHash = new byte[length];
+                //    is.readFully(encryptedHash, 0, encryptedHash.length);
+                //}
+                
+                //String decryptedHash = decryptHash(publicKeyRing.get("client"), encryptedHash);
+                
+                //System.out.println("Decrypted hash: " + decryptedHash);
 
-                // Client up. Set the current thread variable to null so that a
+                // Clean up. Set the current thread variable to null so that a
                 // new client can be accepted by the server.
                 if (clientMessage == null) {
                     synchronized (this) {
@@ -77,7 +100,38 @@ public class ClientThread extends Thread {
             outToClient.close();
             clientSocket.close();
         } catch (IOException e) {
-            System.err.println(e);
+            e.printStackTrace();
+                    
         }
+    }
+    
+    /**
+     * Method used to decrypt the hash of the message that was encrypted using
+     * the RSA algorithm in ECB mode with PKCS1 padding.
+     *
+     * @param publicKey Client's public key used to encrypt the hash
+     * @param encryptedHash Hash to be decrypted
+     * @return Plain text version of hash (Decrypted hash)
+     */
+    private String decryptHash(String publicKey, byte[] encryptedHash) {
+        String plainText = null;
+
+        Security.addProvider(new BouncyCastleProvider());
+
+        try {
+            byte[] decodedKeyBytes = Base64.getDecoder().decode(publicKey);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey pubKey = keyFactory.generatePublic(keySpec);
+
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
+            cipher.init(cipher.DECRYPT_MODE, pubKey);
+
+            byte[] cipherTextBytes = cipher.doFinal(encryptedHash);
+            plainText = new String(cipherTextBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return plainText;
     }
 }
