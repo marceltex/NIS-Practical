@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -21,6 +23,21 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
+
+    private static final Map<String, String> publicKeyRing;
+
+    static {
+        publicKeyRing = new HashMap<String, String>();
+        publicKeyRing.put("client", "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCWa0pDw5g/a0L3lEY3aprKmgDRu3cxbhlo97CNiLUwPohkgr9BJon0q6BzesdeLI8tmswgV09ZvkPXIhoiOGevsumXFEWp5IMCo7HnijfYZH0aMG3bnfxoKDo/5NNUIpPPdXEObDJNQ2heNmNoaasPsaqRLF3TqdtzAXr9e8343wIDAQAB");
+        publicKeyRing.put("server", "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYBjV6H7fIfmOCQKDnd14B0lEH8j1Qe0xE5sDWzhAU/ZGJIT4c0M7tB5bwkxjIMFKpb5fGUYhOWAgDT+Oqg4MdmgzbeVxyK1hRXrhBOwjUQPNlN8z8Xr6qvi3PkhxvmfwlLUXdYroGaVuBvF7YYohYLpspwNPwDaZxUHkie8gaKwIDAQAB");
+    }
+
+    private static final Map<String, String> privateKeyRing;
+
+    static {
+        privateKeyRing = new HashMap<String, String>();
+        privateKeyRing.put("client", "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAJZrSkPDmD9rQveURjdqmsqaANG7dzFuGWj3sI2ItTA+iGSCv0EmifSroHN6x14sjy2azCBXT1m+Q9ciGiI4Z6+y6ZcURankgwKjseeKN9hkfRowbdud/GgoOj/k01Qik891cQ5sMk1DaF42Y2hpqw+xqpEsXdOp23MBev17zfjfAgMBAAECgYAL7Ujvs5gkWzBtqiOhLEJG00xCVQ9/6193a8BjkJXxU9wDwDxDAbfJnzwzO+aICJd3wcDyxYmEr6n4antRAFD0RdEmbdtq9z5uPoRrUoN/+vnTlovuwxEiecusk2kyho02IiYLRule6YQIeoU4sSYZGBwTrZiHHFiK5leQOKzG+QJBANPKmBd0c6PZv0+eadvkGlHct/2FvKbfWUkSSN7TvYbh8a3BcwgOTjF81ldmdL9RGQY/5LjqR4suOOWX18kEuYcCQQC10SvqeVV0DG6PYcEtBJ/5Q9zfTghnBYhPi1x6ceI9nResCkfqZvRo8o0XI50Q2vlLhBqx9QcD0f2LbDJGCTvpAkAKBkbYpVxr3vydKiRckhlk0ouq5k+dnmi9eq4UTfVkkwE7djKZqQOud/g1PtY7z/zdPNz4m64zOkbbJyrBiwW1AkEAhnuISy+iCGtln8KDm2PPXBVZGwbh6inKcGO5bIwt9rrqloMoPHYYlEPMHnBmLeB6AuRcxoJhxO6e5nCKIwmTeQJAdGj3KB4GfiqccBI2VKA4xYZ6Z4T9TFnxyglyPOYP9iq0GiEjUmj59Q3M4vuGuifBCzTprxTPBea9IIycnrHSHg==");
+    }
 
     /**
      * @param args the command line arguments
@@ -53,19 +70,19 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File("messages/message.txt"));
-                
+
                 while (read.hasNext()) {
                     message += read.nextLine();
                 }
 
                 System.out.println("Plain text message to be transmitted:\n\"" + message + "\"\n");
-                
+
                 System.out.println("**************************");
                 System.out.println("* PGP Encryption Started *");
                 System.out.println("**************************\n");
-                
+
                 String sha1Hash = DigestUtils.sha1Hex(message);
-                
+
                 System.out.println("1) SHA-1 Hash of the message: " + sha1Hash + "\n");
 
                 outToServer.println(message);
