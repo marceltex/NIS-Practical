@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -57,7 +58,7 @@ public class TCPClient {
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
-        DataOutputStream os = null;
+        //DataOutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
         try {
@@ -68,7 +69,7 @@ public class TCPClient {
 
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            os = new DataOutputStream(clientSocket.getOutputStream());
+            //os = new DataOutputStream(clientSocket.getOutputStream());
         } catch (UnknownHostException e) {
             System.err.println("Can't find the host");
         } catch (IOException e) {
@@ -80,6 +81,7 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File("messages/message.txt"));
+                FileOutputStream fileOutputStream = new FileOutputStream("messages/message.sig");
 
                 while (read.hasNext()) {
                     message += read.nextLine();
@@ -97,20 +99,24 @@ public class TCPClient {
                 
                 byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
                 
-                System.out.println("2) Encrypted hash of the message: " + new String(encryptedHash, "UTF-8") + "\n");
-
-                os.writeInt(encryptedHash.length);
-                os.write(encryptedHash);
+                System.out.println("2) Encrypted SHA-1 hash:");
+                System.out.println(new String(encryptedHash, "UTF-8") + "\n");
                 
-                //outToServer.println(message);
-                //modifiedMessage = inFromServer.readLine();
+                fileOutputStream.write(encryptedHash);
+                
+                fileOutputStream.close();
+//                os.writeInt(encryptedHash.length);
+//                os.write(encryptedHash);
+                
+                outToServer.println(message);
+                modifiedMessage = inFromServer.readLine();
 
-                //System.out.println("FROM SERVER: " + modifiedMessage);
+                System.out.println("FROM SERVER: " + modifiedMessage);
 
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
-                os.close();
+                //os.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");

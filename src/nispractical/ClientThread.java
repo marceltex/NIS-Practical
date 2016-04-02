@@ -31,7 +31,7 @@ public class ClientThread extends Thread {
     private final ClientThread[] threads;
     private int maxClientsCount;
     
-    private DataInputStream is = null;
+    //private DataInputStream is = null;
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -50,7 +50,7 @@ public class ClientThread extends Thread {
     }
 
     public void run() {
-        String clientMessage;
+        String clientMessage = null;
         String capitalisedMessage;
 
         int maxClientsCount = this.maxClientsCount;
@@ -61,21 +61,21 @@ public class ClientThread extends Thread {
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintStream(clientSocket.getOutputStream());
             
-            is = new DataInputStream(clientSocket.getInputStream());
+            //is = new DataInputStream(clientSocket.getInputStream());
 
             while (true) {
                 clientMessage = inFromClient.readLine();
                 
-                int length = is.readInt();
-                byte[] encryptedHash = null;
-                if (length > 0) {
-                    encryptedHash = new byte[length];
-                    is.readFully(encryptedHash, 0, encryptedHash.length);
-                }
+                //int length = is.readInt();
+                //byte[] encryptedHash = null;
+                //if (length > 0) {
+                //    encryptedHash = new byte[length];
+                //    is.readFully(encryptedHash, 0, encryptedHash.length);
+                //}
                 
-                String decryptedHash = decryptHash(publicKeyRing.get("client"), encryptedHash);
+                //String decryptedHash = decryptHash(publicKeyRing.get("client"), encryptedHash);
                 
-                System.out.println("Decrypted hash: " + decryptedHash);
+                //System.out.println("Decrypted hash: " + decryptedHash);
 
                 // Clean up. Set the current thread variable to null so that a
                 // new client can be accepted by the server.
@@ -100,7 +100,8 @@ public class ClientThread extends Thread {
             outToClient.close();
             clientSocket.close();
         } catch (IOException e) {
-            System.err.println(e);
+            e.printStackTrace();
+                    
         }
     }
     

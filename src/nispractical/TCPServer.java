@@ -54,7 +54,7 @@ public class TCPServer {
                     clientSocket.close();
                 }
             } catch (IOException e) {
-                System.err.println(e);
+                e.printStackTrace();
             }
         }
     }
