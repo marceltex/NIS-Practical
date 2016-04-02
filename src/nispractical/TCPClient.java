@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -21,6 +23,21 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
+
+    private static final Map<String, String> publicKeyRing;
+
+    static {
+        publicKeyRing = new HashMap<String, String>();
+        publicKeyRing.put("client", "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCWa0pDw5g/a0L3lEY3aprKmgDRu3cxbhlo97CNiLUwPohkgr9BJon0q6BzesdeLI8tmswgV09ZvkPXIhoiOGevsumXFEWp5IMCo7HnijfYZH0aMG3bnfxoKDo/5NNUIpPPdXEObDJNQ2heNmNoaasPsaqRLF3TqdtzAXr9e8343wIDAQAB");
+        publicKeyRing.put("server", "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYBjV6H7fIfmOCQKDnd14B0lEH8j1Qe0xE5sDWzhAU/ZGJIT4c0M7tB5bwkxjIMFKpb5fGUYhOWAgDT+Oqg4MdmgzbeVxyK1hRXrhBOwjUQPNlN8z8Xr6qvi3PkhxvmfwlLUXdYroGaVuBvF7YYohYLpspwNPwDaZxUHkie8gaKwIDAQAB");
+    }
+
+    private static final Map<String, String> privateKeyRing;
+
+    static {
+        privateKeyRing = new HashMap<String, String>();
+        privateKeyRing.put("client", "");
+    }
 
     /**
      * @param args the command line arguments
@@ -53,19 +70,19 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File("messages/message.txt"));
-                
+
                 while (read.hasNext()) {
                     message += read.nextLine();
                 }
 
                 System.out.println("Plain text message to be transmitted:\n\"" + message + "\"\n");
-                
+
                 System.out.println("**************************");
                 System.out.println("* PGP Encryption Started *");
                 System.out.println("**************************\n");
-                
+
                 String sha1Hash = DigestUtils.sha1Hex(message);
-                
+
                 System.out.println("1) SHA-1 Hash of the message: " + sha1Hash + "\n");
 
                 outToServer.println(message);
