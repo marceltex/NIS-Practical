@@ -32,6 +32,8 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
+    
+    private static final String FILENAME = "message";
 
     private static final Map<String, String> publicKeyRing;
 
