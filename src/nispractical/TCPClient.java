@@ -194,7 +194,7 @@ public class TCPClient {
             ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFile));
             // Compress the files
             for (int i = 0; i < files.size(); i++) {
-               FileInputStream fileInputStream = new FileInputStream(files.get(i).getName());
+               FileInputStream fileInputStream = new FileInputStream("messages/" + files.get(i).getName());
                
                zipOutputStream.putNextEntry(new ZipEntry(files.get(i).getName()));
                
