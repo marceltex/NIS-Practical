@@ -3,6 +3,7 @@ package nispractical;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,8 +17,11 @@ import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -33,7 +37,7 @@ public class TCPClient {
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
     
-    private static final String FILENAME = "message";
+    private static final String FILENAME = "messages/message";
 
     private static final Map<String, String> publicKeyRing;
 
@@ -82,8 +86,8 @@ public class TCPClient {
         // If statement ensures that everything has been initialised successfully
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
-                Scanner read = new Scanner(new File("messages/message.txt"));
-                FileOutputStream fileOutputStream = new FileOutputStream("messages/message.sig");
+                Scanner read = new Scanner(new File(FILENAME + ".txt"));
+                FileOutputStream fileOutputStream = new FileOutputStream(FILENAME + ".sig");
 
                 while (read.hasNext()) {
                     message += read.nextLine();
@@ -160,5 +164,42 @@ public class TCPClient {
             e.printStackTrace();
         }
         return cipherText;
+    }
+    
+    
+    /**
+     * Method used to compress message and the message's signature.
+     * Adapted from http://stackoverflow.com/questions/16546992/how-to-create-a-zip-file-of-multiple-image-files
+     * 
+     * @param files List of files to be compressed
+     * @param filename Name of the zip file to store the compressed files
+     * @return Zip file storing the compressed files
+     */
+    public static File compress(List<File> files, String filename) {
+        File zipFile = new File(filename);
+        
+        // Buffer required to read files
+        byte[] buffer = new byte[1024];
+        try {
+            ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFile));
+            // Compress the files
+            for (int i = 0; i < files.size(); i++) {
+               FileInputStream fileInputStream = new FileInputStream(files.get(i).getName());
+               
+               zipOutputStream.putNextEntry(new ZipEntry(files.get(i).getName()));
+               
+               int length;
+               while ((length = fileInputStream.read(buffer)) > 0) {
+                   zipOutputStream.write(buffer, 0, length);
+               }  
+               zipOutputStream.closeEntry();
+               fileInputStream.close();
+            }
+            zipOutputStream.close();
+            return zipFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }    
+        return null;
     }
 }
