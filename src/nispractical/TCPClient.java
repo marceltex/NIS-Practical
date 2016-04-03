@@ -15,6 +15,7 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +61,7 @@ public class TCPClient {
     public static void main(String[] args) {
         String message = "";
         String modifiedMessage;
-
+        
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
@@ -88,6 +89,7 @@ public class TCPClient {
             try {
                 Scanner read = new Scanner(new File(FILENAME + ".txt"));
                 FileOutputStream fileOutputStream = new FileOutputStream(FILENAME + ".sig");
+                List<File> files = new ArrayList<File>();
 
                 while (read.hasNext()) {
                     message += read.nextLine();
@@ -111,6 +113,14 @@ public class TCPClient {
                 fileOutputStream.write(encryptedHash);
                 
                 fileOutputStream.close();
+                
+                files.add(new File(FILENAME + ".txt"));
+                files.add(new File(FILENAME + ".sig"));
+                
+                File compressedFile = compress(files, FILENAME + ".zip");
+                
+                System.out.println("3) Message and message sugnature compressed "
+                        + "to '" + compressedFile.getName() + "' successfully\n");
 //                os.writeInt(encryptedHash.length);
 //                os.write(encryptedHash);
                 
