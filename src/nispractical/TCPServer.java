@@ -49,7 +49,7 @@ public class TCPServer {
                 }
                 if (i == maxClientsCount) {
                     PrintStream outToClient = new PrintStream(clientSocket.getOutputStream());
-                    outToClient.println("Server is too busy. Tr again later.");
+                    outToClient.println("Server is too busy. Try again later.");
                     outToClient.close();
                     clientSocket.close();
                 }
