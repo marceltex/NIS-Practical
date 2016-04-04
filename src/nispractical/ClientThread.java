@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyFactory;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -18,7 +19,10 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import sun.misc.BASE64Decoder;
 
 /**
  * Client Thread class used to create Client Thread objects of the clients
@@ -180,4 +184,19 @@ public class ClientThread extends Thread {
             e.printStackTrace();
         }
     }
+    
+    public String decryptZipAES(SecretKey sessionKey, String encrypted) throws Exception {
+        Security.addProvider(new BouncyCastleProvider());
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+        SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
+        byte[] iv = new byte[cipher.getBlockSize()];
+        randomSecureRandom.nextBytes(iv);
+        IvParameterSpec ivParams = new IvParameterSpec(iv);
+        cipher.init(Cipher.DECRYPT_MODE, sessionKey, ivParams);
+        byte[] decodedBytes = new BASE64Decoder().decodeBuffer(encrypted);
+        byte[] original = cipher.doFinal(decodedBytes);
+        String decryptedValue = new String(original);
+        return decryptedValue;
+    }
+    
 }

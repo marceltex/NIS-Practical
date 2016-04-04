@@ -13,7 +13,9 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
@@ -25,8 +27,13 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 
 /**
  * A TCP Client that will transmit a message securely, using the PGP protocol.
@@ -59,7 +66,7 @@ public class TCPClient {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String message = "";
         String modifiedMessage;
 
@@ -126,11 +133,16 @@ public class TCPClient {
                 System.out.println("3) Message and message signature compressed "
                         + "to '" + compressedFile.getName() + "' successfully\n");
 
+                SecretKey sessionKey = generateAESSessionKey();
+                System.out.println("4) Session key and IV generated");
                 byte[] buffer = new byte[(int) compressedFile.length()];
 
                 fileInputStream = new FileInputStream(compressedFile);
                 bufferedInputStream = new BufferedInputStream(fileInputStream);
                 bufferedInputStream.read(buffer, 0, buffer.length);
+
+                String AESencryptedZip = encryptZipAES(sessionKey, buffer);
+                System.out.println("Compressed file encrypted:\n" + AESencryptedZip + "\n");
 
                 System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
                 os.write(buffer, 0, buffer.length);
@@ -222,4 +234,29 @@ public class TCPClient {
         }
         return null;
     }
+    
+    private static SecretKey generateAESSessionKey() {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            keyGen.init(128);
+            return keyGen.generateKey();
+        } catch (NoSuchAlgorithmException n) {
+            return null;
+        }
+    }
+
+    public static String encryptZipAES(SecretKey sessionKey, byte[] buffer) throws Exception {
+        Security.addProvider(new BouncyCastleProvider());
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+        SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
+        byte[] iv = new byte[cipher.getBlockSize()];
+        randomSecureRandom.nextBytes(iv);
+        IvParameterSpec ivParams = new IvParameterSpec(iv);
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey,ivParams);
+        byte[] encrypted = cipher.doFinal(buffer);
+        String encryptedValue = new BASE64Encoder().encode(encrypted);
+        return encryptedValue;
+    }
+
+    
 }
