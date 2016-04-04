@@ -18,8 +18,10 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.Inflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -90,8 +92,6 @@ public class ClientThread extends Thread {
 
                 System.out.println("Decompressing file...");
 
-                decompress(FILENAME + ".zip", "message");
-
                 System.out.println("message.zip decompressed successfully\n");
 
                 synchronized (this) {
@@ -143,7 +143,7 @@ public class ClientThread extends Thread {
     }
 
     /**
-     * Method used to decrypt the session key of the message that was encrypted 
+     * Method used to decrypt the session key of the message that was encrypted
      * using the RSA algorithm in ECB mode with PKCS1 padding.
      *
      * @param publicKey Client's public key used to encrypt the hash
@@ -180,41 +180,25 @@ public class ClientThread extends Thread {
      * @param outputFolderName Name of the folder in which to store the
      * decompressed files
      */
-    public static void decompress(String zipFilename, String outputFolderName) {
-        byte[] buffer = new byte[1024];
-
-        try {
-            File folder = new File(outputFolderName);
-
-            if (!folder.exists()) {
-                folder.mkdir();
+    public byte[] decompress(byte[] compressedByteArray) {         
+        ByteArrayOutputStream baos = null;
+        Inflater iflr = new Inflater();
+        iflr.setInput(compressedByteArray);
+        baos = new ByteArrayOutputStream();
+        byte[] tmp = new byte[4*1024];
+        try{
+            while(!iflr.finished()){
+                int size = iflr.inflate(tmp);
+                baos.write(tmp, 0, size);
             }
-
-            ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilename));
-            ZipEntry zipEntry = zipInputStream.getNextEntry();
-
-            while (zipEntry != null) {
-                String filename = zipEntry.getName();
-                File newFile = new File(outputFolderName + File.separator + filename);
-
-                System.out.println("Unzipped file: " + newFile.getAbsolutePath());
-
-                new File(newFile.getParent()).mkdirs();
-
-                FileOutputStream fileOutputStream = new FileOutputStream(newFile);
-
-                int length;
-                while ((length = zipInputStream.read(buffer)) > 0) {
-                    fileOutputStream.write(buffer, 0, length);
-                }
-                fileOutputStream.close();
-                zipEntry = zipInputStream.getNextEntry();
-            }
-            zipInputStream.closeEntry();
-            zipInputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception ex){
+             
+        } finally {
+            try{
+                if(baos != null) baos.close();
+            } catch(Exception ex){}
         }
+        return baos.toByteArray();
     }
 
     public String decryptZipAES(SecretKey sessionKey, String encrypted) throws Exception {
