@@ -18,6 +18,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.Inflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -25,6 +27,7 @@ import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import sun.misc.BASE64Decoder;
 
@@ -68,6 +71,7 @@ public class ClientThread extends Thread {
         ClientThread[] threads = this.threads;
 
         int bytesRead;
+        byte[] encryptedSessionKey = new byte[128];
         byte[] abyte = new byte[1];
 
         try {
@@ -75,25 +79,56 @@ public class ClientThread extends Thread {
             is = clientSocket.getInputStream();
 
             if (is != null) {
+
+                is.read(encryptedSessionKey, 0, 128);
+                byte[] sessionKey = decryptSessionKey(privateKeyRing.get("server"), encryptedSessionKey);
+                String sessionKeyString = new String(sessionKey, "UTF-8");
+                System.out.println("Session Key String: " + sessionKeyString);
+                byte[] decodedSessionKey = Base64.getDecoder().decode(sessionKeyString);
+                System.out.println("decrypted session key: " + new String(decodedSessionKey, "UTF-8"));
+
                 byteArrayOutputStream = new ByteArrayOutputStream();
-                fileOutputStream = new FileOutputStream(FILENAME + ".zip");
-                bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+                int pos = 0;
                 bytesRead = is.read(abyte, 0, abyte.length);
-
                 do {
-                    byteArrayOutputStream.write(abyte);
-                    bytesRead = is.read(abyte);
+                    if (pos > 127) {
+                        byteArrayOutputStream.write(abyte);
+                        bytesRead = is.read(abyte);
+                    }
+                    pos++;
                 } while (bytesRead != -1);
+                byte[] message = byteArrayOutputStream.toByteArray();
+                System.out.println("encrypted message:\n" + new String(message, "UTF-8") + "\n");
 
-                bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
-                bufferedOutputStream.flush();
+                SecretKey secretSessionKey = new SecretKeySpec(decodedSessionKey, 0, decodedSessionKey.length, "AES");
+                byte[] sessionMessage = null;
+                try {
+                    sessionMessage = decryptZipAES(secretSessionKey, message);
+                    System.out.println(sessionMessage);
+                } catch (Exception ex) {
+                    Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
-                System.out.println("File message.zip received\n");
+                byte[] uncompressedMessage = decompress(sessionMessage);
+                System.out.println("message and hash:\n" + new String(uncompressedMessage));
 
-                System.out.println("Decompressing file...");
-
-                System.out.println("message.zip decompressed successfully\n");
-
+//                byteArrayOutputStream = new ByteArrayOutputStream();
+//                fileOutputStream = new FileOutputStream(FILENAME + ".zip");
+//                bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+//                bytesRead = is.read(abyte, 0, abyte.length);
+//
+//                do {
+//                    byteArrayOutputStream.write(abyte);
+//                    bytesRead = is.read(abyte);
+//                } while (bytesRead != -1);
+//                bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
+//                bufferedOutputStream.flush();
+//
+//                System.out.println("File message.zip received\n");
+//
+//                System.out.println("Decompressing file...");
+//
+//                System.out.println("message.zip decompressed successfully\n");
                 synchronized (this) {
                     for (int i = 0; i < maxClientsCount; i++) {
                         if (threads[i] == this) {
@@ -150,11 +185,11 @@ public class ClientThread extends Thread {
      * @param encryptedHash Hash to be decrypted
      * @return Plain text version of hash (Decrypted hash)
      */
-    private String decryptSessionKey(String privateKey, byte[] encryptedSessionKey) {
+    private byte[] decryptSessionKey(String privateKey, byte[] encryptedSessionKey) {
         String plainText = null;
 
         Security.addProvider(new BouncyCastleProvider());
-
+        byte[] cipherTextBytes = null;
         try {
             byte[] decodedKeyBytes = Base64.getDecoder().decode(privateKey);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKeyBytes);
@@ -164,12 +199,13 @@ public class ClientThread extends Thread {
             Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
             cipher.init(cipher.DECRYPT_MODE, pubKey);
 
-            byte[] cipherTextBytes = cipher.doFinal(encryptedSessionKey);
-            plainText = new String(cipherTextBytes);
+            cipherTextBytes = cipher.doFinal(encryptedSessionKey);
+            //plainText = new String(cipherTextBytes);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return plainText;
+        return cipherTextBytes;
+        //return plainText;
     }
 
     /**
@@ -180,28 +216,26 @@ public class ClientThread extends Thread {
      * @param outputFolderName Name of the folder in which to store the
      * decompressed files
      */
-    public byte[] decompress(byte[] compressedByteArray) {         
+    public byte[] decompress(byte[] compressedByteArray) {
         ByteArrayOutputStream baos = null;
         Inflater iflr = new Inflater();
         iflr.setInput(compressedByteArray);
         baos = new ByteArrayOutputStream();
-        byte[] tmp = new byte[4*1024];
-        try{
-            while(!iflr.finished()){
+        byte[] tmp = new byte[1024];
+        try {
+            while (!iflr.finished()) {
                 int size = iflr.inflate(tmp);
                 baos.write(tmp, 0, size);
             }
-        } catch (Exception ex){
-             
-        } finally {
-            try{
-                if(baos != null) baos.close();
-            } catch(Exception ex){}
+            baos.close();
+        } catch (Exception e) {
+//            e.printStackTrace();
         }
+
         return baos.toByteArray();
     }
 
-    public String decryptZipAES(SecretKey sessionKey, String encrypted) throws Exception {
+    public byte[] decryptZipAES(SecretKey sessionKey, byte[] encrypted) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
         SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
@@ -209,9 +243,8 @@ public class ClientThread extends Thread {
         randomSecureRandom.nextBytes(iv);
         IvParameterSpec ivParams = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, sessionKey, ivParams);
-        byte[] decodedBytes = new BASE64Decoder().decodeBuffer(encrypted);
-        byte[] original = cipher.doFinal(decodedBytes);
-        String decryptedValue = new String(original);
-        return decryptedValue;
+        //byte[] decodedBytes = new BASE64Decoder().decodeBuffer(encrypted);
+        byte[] original = cipher.doFinal(encrypted);
+        return original;
     }
 }
