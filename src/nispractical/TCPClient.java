@@ -75,7 +75,11 @@ public class TCPClient {
         // Open a socket on port 2222. Open the input and output streams
         try {
             System.out.println("The client has started.");
-            clientSocket = new Socket(IP_ADDRESS, PORT);
+            if (args.length > 0) {
+                clientSocket = new Socket(args[0], PORT);
+            } else {
+                clientSocket = new Socket(IP_ADDRESS, PORT);
+            }
             System.out.println("Successfully connected to server at IP Address: "
                     + IP_ADDRESS + " using Port Number: " + PORT);
             outToServer = new PrintStream(clientSocket.getOutputStream());
@@ -122,7 +126,7 @@ public class TCPClient {
                 System.out.println("7) Session key encrypted using the server's public key\n" + new String(encryptedSessionKey, "UTF-8"));
 
                 byte[] partialMessage = combineByteArrs(encrypted, 0, encryptedSessionKey, 128);
-                byte[] finalMessage = combineByteArrs(partialMessage, 0,iv,16);
+                byte[] finalMessage = combineByteArrs(partialMessage, 0, iv, 16);
                 System.out.println("\n\n8)Final Message Concatenated:\n" + new String(finalMessage, "UTF-8") + "\n");
 
                 os.write(finalMessage, 0, finalMessage.length);
