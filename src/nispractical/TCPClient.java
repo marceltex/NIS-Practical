@@ -136,21 +136,22 @@ public class TCPClient {
                 os.write(buffer, 0, buffer.length);
                 os.flush();
                 System.out.println("File sent to server successfully");
+                os.close();
+               
 //                os.writeInt(encryptedHash.length);
 //                os.write(encryptedHash);
                 
-                outToServer.println(message);
-                modifiedMessage = inFromServer.readLine();
-
-                System.out.println("FROM SERVER: " + modifiedMessage);
+//                outToServer.println(message);
+//                modifiedMessage = inFromServer.readLine();
+//
+//                System.out.println("FROM SERVER: " + modifiedMessage);
 
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
                 fileInputStream.close();
                 fileOutputStream.close();
-                bufferedInputStream.close();
-                os.close();
+                bufferedInputStream.close();    
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");

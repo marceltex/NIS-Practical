@@ -2,12 +2,12 @@ package nispractical;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.security.KeyFactory;
@@ -37,12 +37,11 @@ public class ClientThread extends Thread {
     private InputStream is = null;
     private FileOutputStream fileOutputStream = null;
     private BufferedOutputStream bufferedOutputStream = null;
+    private ByteArrayOutputStream byteArrayOutputStream = null;
     private final ClientThread[] threads;
     private int maxClientsCount;
-    
+
     private static final String FILENAME = "messages/message";
-    
-    private final static int FILE_SIZE = 6022386; // File size temporarily hard-coded
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -61,14 +60,14 @@ public class ClientThread extends Thread {
     }
 
     public void run() {
-        String clientMessage = null;
+        String clientMessage = "hi";
         String capitalisedMessage;
 
         int maxClientsCount = this.maxClientsCount;
         ClientThread[] threads = this.threads;
-        
+
         int bytesRead;
-        int current = 0;
+        byte[] abyte = new byte[1];
 
         try {
             // Create input and output streams for this client.
@@ -76,56 +75,36 @@ public class ClientThread extends Thread {
             outToClient = new PrintStream(clientSocket.getOutputStream());
             is = clientSocket.getInputStream();
 
-            while (true) {
+            if (is != null) {
                 //clientMessage = inFromClient.readLine();
-                
-                byte[] buffer = new byte[494];
+                byteArrayOutputStream = new ByteArrayOutputStream();
                 fileOutputStream = new FileOutputStream(FILENAME + ".zip");
                 bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-                bytesRead = is.read(buffer, 0, buffer.length);
-                current = bytesRead;
-                
-                do {
-                    bytesRead = is.read(buffer, current, (buffer.length - current));         
-                    if (bytesRead > 0) {
-                        current += bytesRead;
-                    }
-                } while(bytesRead > 0);
-                
-                bufferedOutputStream.write(buffer, 0, current);
-                bufferedOutputStream.flush();
-                
-                System.out.println("File message.zip downloaded (" + current + " bytes read)");
-                
-                //int length = is.readInt();
-                //byte[] encryptedHash = null;
-                //if (length > 0) {
-                //    encryptedHash = new byte[length];
-                //    is.readFully(encryptedHash, 0, encryptedHash.length);
-                //}
-                
-                //String decryptedHash = decryptHash(publicKeyRing.get("client"), encryptedHash);
-                
-                //System.out.println("Decrypted hash: " + decryptedHash);
+                bytesRead = is.read(abyte, 0, abyte.length);
 
-                // Clean up. Set the current thread variable to null so that a
-                // new client can be accepted by the server.
-                if (clientMessage == null) {
-                    synchronized (this) {
-                        for (int i = 0; i < maxClientsCount; i++) {
-                            if (threads[i] == this) {
-                                threads[i] = null;
-                            }
+                do {
+                    byteArrayOutputStream.write(abyte);
+                    bytesRead = is.read(abyte);
+                } while (bytesRead != -1);
+
+                bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
+                bufferedOutputStream.flush();
+
+                System.out.println("File message.zip downloaded");
+
+                synchronized (this) {
+                    for (int i = 0; i < maxClientsCount; i++) {
+                        if (threads[i] == this) {
+                            threads[i] = null;
                         }
                     }
-                    break;
                 }
+                
                 System.out.println("Received: " + clientMessage);
 
                 capitalisedMessage = clientMessage.toUpperCase();
                 outToClient.println(capitalisedMessage);
             }
-
             // Close the input and output streams and close the socket
             //inFromClient.close();
             outToClient.close();
@@ -134,10 +113,10 @@ public class ClientThread extends Thread {
             is.close();
             clientSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();          
+            e.printStackTrace();
         }
     }
-    
+
     /**
      * Method used to decrypt the hash of the message that was encrypted using
      * the RSA algorithm in ECB mode with PKCS1 padding.
@@ -167,37 +146,38 @@ public class ClientThread extends Thread {
         }
         return plainText;
     }
-    
+
     /**
-     * Method used to decompress message and the message's signature.
-     * Adapted from http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
-     * 
+     * Method used to decompress message and the message's signature. Adapted
+     * from http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
+     *
      * @param zipFilename Name of the compressed zip file
-     * @param outputFolderName Name of the folder in which to store the decompressed files
+     * @param outputFolderName Name of the folder in which to store the
+     * decompressed files
      */
     public static void deccompress(String zipFilename, String outputFolderName) {
         byte[] buffer = new byte[1024];
-        
+
         try {
             File folder = new File(outputFolderName);
-            
+
             if (!folder.exists()) {
                 folder.mkdir();
             }
-            
+
             ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilename));
             ZipEntry zipEntry = zipInputStream.getNextEntry();
-            
+
             while (zipEntry != null) {
                 String filename = zipEntry.getName();
                 File newFile = new File(outputFolderName + File.separator + filename);
-                
+
                 System.out.println("Unzipped file: " + newFile.getAbsolutePath());
-                
+
                 new File(newFile.getParent()).mkdirs();
-                
+
                 FileOutputStream fileOutputStream = new FileOutputStream(newFile);
-                
+
                 int length;
                 while ((length = zipInputStream.read(buffer)) > 0) {
                     fileOutputStream.write(buffer, 0, length);
