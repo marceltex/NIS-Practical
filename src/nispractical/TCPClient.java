@@ -138,12 +138,6 @@ public class TCPClient {
                 System.out.println("File sent to server successfully");
                 os.close();
 
-//                os.writeInt(encryptedHash.length);
-//                os.write(encryptedHash);
-//                outToServer.println(message);
-//                modifiedMessage = inFromServer.readLine();
-//
-//                System.out.println("FROM SERVER: " + modifiedMessage);
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
