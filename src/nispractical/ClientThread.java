@@ -90,7 +90,7 @@ public class ClientThread extends Thread {
                 bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
                 bufferedOutputStream.flush();
 
-                System.out.println("File message.zip downloaded\n");
+                System.out.println("File message.zip received\n");
 
                 System.out.println("Decompressing file...");
 
