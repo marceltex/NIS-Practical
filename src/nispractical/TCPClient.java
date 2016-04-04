@@ -1,5 +1,6 @@
 package nispractical;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -64,7 +66,10 @@ public class TCPClient {
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
-        //DataOutputStream os = null;
+        FileInputStream fileInputStream = null;
+        FileOutputStream fileOutputStream = null;
+        BufferedInputStream bufferedInputStream = null;
+        OutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
         try {
@@ -75,7 +80,7 @@ public class TCPClient {
 
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            //os = new DataOutputStream(clientSocket.getOutputStream());
+            os = clientSocket.getOutputStream();
         } catch (UnknownHostException e) {
             System.err.println("Can't find the host");
         } catch (IOException e) {
@@ -87,7 +92,7 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File(FILENAME + ".txt"));
-                FileOutputStream fileOutputStream = new FileOutputStream(FILENAME + ".sig");
+                fileOutputStream = new FileOutputStream(FILENAME + ".sig");
                 List<File> files = new ArrayList<File>();
 
                 while (read.hasNext()) {
@@ -120,6 +125,17 @@ public class TCPClient {
                 
                 System.out.println("3) Message and message sugnature compressed "
                         + "to '" + compressedFile.getName() + "' successfully\n");
+                
+                byte[] buffer = new byte[(int)compressedFile.length()];
+                
+                fileInputStream = new FileInputStream(compressedFile);
+                bufferedInputStream = new BufferedInputStream(fileInputStream);
+                bufferedInputStream.read(buffer, 0, buffer.length);
+                
+                System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
+                os.write(buffer, 0, buffer.length);
+                os.flush();
+                System.out.println("File sent to server successfully");
 //                os.writeInt(encryptedHash.length);
 //                os.write(encryptedHash);
                 
