@@ -198,5 +198,4 @@ public class ClientThread extends Thread {
         String decryptedValue = new String(original);
         return decryptedValue;
     }
-    
 }
