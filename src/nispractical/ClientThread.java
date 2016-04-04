@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
@@ -141,6 +143,36 @@ public class ClientThread extends Thread {
     }
 
     /**
+     * Method used to decrypt the session key of the message that was encrypted 
+     * using the RSA algorithm in ECB mode with PKCS1 padding.
+     *
+     * @param publicKey Client's public key used to encrypt the hash
+     * @param encryptedHash Hash to be decrypted
+     * @return Plain text version of hash (Decrypted hash)
+     */
+    private String decryptSessionKey(String privateKey, byte[] encryptedSessionKey) {
+        String plainText = null;
+
+        Security.addProvider(new BouncyCastleProvider());
+
+        try {
+            byte[] decodedKeyBytes = Base64.getDecoder().decode(privateKey);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey pubKey = keyFactory.generatePrivate(keySpec);
+
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
+            cipher.init(cipher.DECRYPT_MODE, pubKey);
+
+            byte[] cipherTextBytes = cipher.doFinal(encryptedSessionKey);
+            plainText = new String(cipherTextBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return plainText;
+    }
+
+    /**
      * Method used to decompress message and the message's signature. Adapted
      * from http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
      *
@@ -184,7 +216,7 @@ public class ClientThread extends Thread {
             e.printStackTrace();
         }
     }
-    
+
     public String decryptZipAES(SecretKey sessionKey, String encrypted) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
