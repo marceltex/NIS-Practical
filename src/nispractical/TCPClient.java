@@ -257,6 +257,4 @@ public class TCPClient {
         String encryptedValue = new BASE64Encoder().encode(encrypted);
         return encryptedValue;
     }
-
-    
 }
