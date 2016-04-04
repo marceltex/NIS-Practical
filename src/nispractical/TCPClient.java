@@ -147,7 +147,10 @@ public class TCPClient {
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
-                //os.close();
+                fileInputStream.close();
+                fileOutputStream.close();
+                bufferedInputStream.close();
+                os.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
