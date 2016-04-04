@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
@@ -42,7 +43,7 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
-
+    private static byte[] iv;
     private static final String FILENAME = "messages/message";
 
     private static final Map<String, String> publicKeyRing;
@@ -77,7 +78,6 @@ public class TCPClient {
             clientSocket = new Socket(IP_ADDRESS, PORT);
             System.out.println("Successfully connected to server at IP Address: "
                     + IP_ADDRESS + " using Port Number: " + PORT);
-
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             os = clientSocket.getOutputStream();
@@ -92,59 +92,43 @@ public class TCPClient {
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
                 Scanner read = new Scanner(new File(FILENAME + ".txt"));
-
                 while (read.hasNext()) {
                     message += read.nextLine();
                 }
-
                 System.out.println("Plain text message to be transmitted:\n\"" + message + "\"\n");
-
                 System.out.println("**************************");
                 System.out.println("* PGP Encryption Started *");
                 System.out.println("**************************\n");
-
                 String sha1Hash = DigestUtils.sha1Hex(message);
-
                 System.out.println("1) SHA-1 hash of the message:\n" + sha1Hash + "\n");
-
                 byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
-
-                System.out.println("2) Encrypted SHA-1 hash:");
-                System.out.println(new String(encryptedHash, "UTF-8") + "\n");
-
+                System.out.println("2) Client Private Key Encrypted SHA-1 hash:");
+                System.out.println(new String(encryptedHash, "UTF-8"));
                 byte[] messageAndHash = combineByteArrs(message.getBytes(), 0, encryptedHash, 128);
+                System.out.println("\n\n3) Message and message signature concatenated successfully: \n" + new String(messageAndHash, "UTF-8"));
 
-                System.out.println("3) Message and message signature concatenated successfully\n");
-
-                byte[] compressedFile = compress("message.zip", messageAndHash);
-
-                System.out.println("4) Message and message signature compressed successfully:\n"
-                        + new String(compressedFile) + "\n");
-
+                byte[] compressedFile = compress(messageAndHash);
+                System.out.println("\n\n4) Message and message signature compressed successfully:\n"
+                        + new String(compressedFile, "UTF-8") + "\n");
                 SecretKey sessionKey = generateAESSessionKey();
                 String sessionKeyString = Base64.getEncoder().encodeToString(sessionKey.getEncoded());
-
-                System.out.println("5) Session key generated:" + sessionKeyString + "\n");
-
+                System.out.println("5) Session key generated:    " + sessionKeyString + "\n");
                 byte[] encrypted = encryptZipAES(sessionKey, compressedFile);
-                String encryptedValue = new BASE64Encoder().encode(encrypted);
-
-                System.out.println("6) Compressed file encrypted:\n" + encryptedValue + "\n");
+                // String encryptedValue = new BASE64Encoder().encode(encrypted);
+                System.out.println("6) Compressed file encrypted with session key:\n" + new String(encrypted, "UTF-8") + "\n");
 
                 byte[] encryptedSessionKey = encryptSessionKey(publicKeyRing.get("server"), sessionKeyString);
 
-                System.out.println("7) Session key encrypted using the server's "
-                        + "public key:\n" + new String(encryptedSessionKey) + "\n");
+                System.out.println("7) Session key encrypted using the server's public key\n" + new String(encryptedSessionKey, "UTF-8"));
 
-                byte[] finalMessage = combineByteArrs(encrypted, 0, encryptedSessionKey, 128);
-
-                System.out.println("Final Message:\n" + new String(finalMessage, "UTF-8") + "\n");
+                byte[] partialMessage = combineByteArrs(encrypted, 0, encryptedSessionKey, 128);
+                byte[] finalMessage = combineByteArrs(partialMessage, 0,iv,16);
+                System.out.println("\n\n8)Final Message Concatenated:\n" + new String(finalMessage, "UTF-8") + "\n");
 
                 os.write(finalMessage, 0, finalMessage.length);
                 os.flush();
                 System.out.println("Final message sent to server successfully");
                 os.close();
-
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
@@ -172,18 +156,14 @@ public class TCPClient {
      */
     private static byte[] encryptHash(String privateKey, String hash) {
         byte[] cipherText = null;
-
         Security.addProvider(new BouncyCastleProvider());
-
         try {
             byte[] decodedKeyBytes = Base64.getDecoder().decode(privateKey);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKeyBytes);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             PrivateKey privKey = keyFactory.generatePrivate(keySpec);
-
             Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
             cipher.init(cipher.ENCRYPT_MODE, privKey);
-
             cipherText = cipher.doFinal(hash.getBytes());
         } catch (Exception e) {
             e.printStackTrace();
@@ -201,9 +181,7 @@ public class TCPClient {
      */
     private static byte[] encryptSessionKey(String publicKey, String sessionKey) {
         byte[] cipherText = null;
-
         Security.addProvider(new BouncyCastleProvider());
-
         try {
             byte[] decodedKeyBytes = Base64.getDecoder().decode(publicKey);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKeyBytes);
@@ -228,24 +206,20 @@ public class TCPClient {
      * @param input Byte array to be compressed
      * @return Byte array of the compressed file
      */
-    public static byte[] compress(String filename, byte[] input) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        try {
-            ZipOutputStream zos = new ZipOutputStream(baos);
-            ZipEntry entry = new ZipEntry(filename);
-            entry.setSize(input.length);
-
-            zos.putNextEntry(entry);
-
-            zos.write(input);
-
-            zos.closeEntry();
-            zos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static byte[] compress(byte[] input) throws IOException {
+        Deflater deflater = new Deflater();
+        deflater.setInput(input);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(input.length);
+        deflater.finish();
+        byte[] buffer = new byte[1024];
+        while (!deflater.finished()) {
+            int count = deflater.deflate(buffer); // returns the generated code... index  
+            outputStream.write(buffer, 0, count);
         }
-        return baos.toByteArray();
+        outputStream.close();
+        byte[] output = outputStream.toByteArray();
+        return output;
+
     }
 
     private static SecretKey generateAESSessionKey() {
@@ -262,7 +236,7 @@ public class TCPClient {
         Security.addProvider(new BouncyCastleProvider());
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
         SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
-        byte[] iv = new byte[cipher.getBlockSize()];
+        iv = new byte[cipher.getBlockSize()];
         randomSecureRandom.nextBytes(iv);
         IvParameterSpec ivParams = new IvParameterSpec(iv);
         cipher.init(Cipher.ENCRYPT_MODE, sessionKey, ivParams);
