@@ -116,7 +116,7 @@ public class TCPClient {
 
                 System.out.println("3) Message and message signature concatenated successfully\n");
 
-                byte[] compressedFile = zipBytes("message.zip", messageAndHash);
+                byte[] compressedFile = compress("message.zip", messageAndHash);
 
                 System.out.println("4) Message and message signature compressed successfully:\n"
                         + new String(compressedFile) + "\n");
@@ -228,7 +228,7 @@ public class TCPClient {
      * @param input Byte array to be compressed
      * @return Byte array of the compressed file
      */
-    public static byte[] zipBytes(String filename, byte[] input) {
+    public static byte[] compress(String filename, byte[] input) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try {
