@@ -1,7 +1,9 @@
 package nispractical;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -13,6 +15,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import javax.crypto.Cipher;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -32,6 +36,8 @@ public class ClientThread extends Thread {
     private int maxClientsCount;
     
     //private DataInputStream is = null;
+    
+    private static final String FILENAME = "messages/message";
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -133,5 +139,49 @@ public class ClientThread extends Thread {
             e.printStackTrace();
         }
         return plainText;
+    }
+    
+    /**
+     * Method used to decompress message and the message's signature.
+     * Adapted from http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
+     * 
+     * @param zipFilename Name of the compressed zip file
+     * @param outputFolderName Name of the folder in which to store the decompressed files
+     */
+    public static void deccompress(String zipFilename, String outputFolderName) {
+        byte[] buffer = new byte[1024];
+        
+        try {
+            File folder = new File(outputFolderName);
+            
+            if (!folder.exists()) {
+                folder.mkdir();
+            }
+            
+            ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilename));
+            ZipEntry zipEntry = zipInputStream.getNextEntry();
+            
+            while (zipEntry != null) {
+                String filename = zipEntry.getName();
+                File newFile = new File(outputFolderName + File.separator + filename);
+                
+                System.out.println("Unzipped file: " + newFile.getAbsolutePath());
+                
+                new File(newFile.getParent()).mkdirs();
+                
+                FileOutputStream fileOutputStream = new FileOutputStream(newFile);
+                
+                int length;
+                while ((length = zipInputStream.read(buffer)) > 0) {
+                    fileOutputStream.write(buffer, 0, length);
+                }
+                fileOutputStream.close();
+                zipEntry = zipInputStream.getNextEntry();
+            }
+            zipInputStream.closeEntry();
+            zipInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
