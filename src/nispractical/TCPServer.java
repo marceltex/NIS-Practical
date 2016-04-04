@@ -30,7 +30,7 @@ public class TCPServer {
         try {
             serverSocket = new ServerSocket(PORT);
             System.out.println("The server has started using Port Number: "
-                    + PORT + ". To stop it press <CTRL><C>.");
+                    + PORT + ". To stop it press <CTRL><C>.\n\n");
         } catch (IOException e) {
             System.err.println("Failed to start the server on Port Number: "
                     + PORT + ". Error message produced: " + e);
