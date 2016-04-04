@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -19,10 +18,8 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
@@ -72,7 +69,6 @@ public class TCPClient {
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
-        FileOutputStream fileOutputStream = null;
         OutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
@@ -118,12 +114,8 @@ public class TCPClient {
 
                 byte[] messageAndHash = combineByteArrs(message.getBytes(), 0, encryptedHash, 128);
 
-                fileOutputStream.write(encryptedHash);
-
-                fileOutputStream.close();
-
                 System.out.println("3) Message and message signature concatenated successfully\n");
-                
+
                 byte[] compressedFile = zipBytes("message.zip", messageAndHash);
 
                 System.out.println("4) Message and message signature compressed successfully:\n"
@@ -131,12 +123,12 @@ public class TCPClient {
 
                 SecretKey sessionKey = generateAESSessionKey();
                 String sessionKeyString = Base64.getEncoder().encodeToString(sessionKey.getEncoded());
-                
+
                 System.out.println("5) Session key generated:" + sessionKeyString + "\n");
-                
+
                 byte[] encrypted = encryptZipAES(sessionKey, compressedFile);
                 String encryptedValue = new BASE64Encoder().encode(encrypted);
-                
+
                 System.out.println("6) Compressed file encrypted:\n" + encryptedValue + "\n");
 
                 byte[] encryptedSessionKey = encryptSessionKey(publicKeyRing.get("server"), sessionKeyString);
@@ -145,18 +137,17 @@ public class TCPClient {
                         + "public key:\n" + new String(encryptedSessionKey) + "\n");
 
                 byte[] finalMessage = combineByteArrs(encrypted, 0, encryptedSessionKey, 128);
-                
+
                 System.out.println("Final Message:\n" + new String(finalMessage, "UTF-8") + "\n");
 
                 os.write(finalMessage, 0, finalMessage.length);
                 os.flush();
-                System.out.println("File sent to server successfully");
+                System.out.println("Final message sent to server successfully");
                 os.close();
 
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
-                fileOutputStream.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
@@ -239,16 +230,16 @@ public class TCPClient {
      */
     public static byte[] zipBytes(String filename, byte[] input) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
+
         try {
             ZipOutputStream zos = new ZipOutputStream(baos);
             ZipEntry entry = new ZipEntry(filename);
             entry.setSize(input.length);
-            
+
             zos.putNextEntry(entry);
-            
+
             zos.write(input);
-            
+
             zos.closeEntry();
             zos.close();
         } catch (IOException e) {
@@ -286,5 +277,4 @@ public class TCPClient {
         System.arraycopy(src, srcpos, temp, dstpos, src.length);
         return temp;
     }
-
 }
