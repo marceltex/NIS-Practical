@@ -79,14 +79,14 @@ public class ClientThread extends Thread {
             is = clientSocket.getInputStream();
 
             if (is != null) {
-
+                System.out.println("Message Recieved! Starting verification...\n");
                 is.read(iv, 0, 16);
                 is.read(encryptedSessionKey, 0, 128);
                 byte[] sessionKey = decryptSessionKey(privateKeyRing.get("server"), encryptedSessionKey);
                 String sessionKeyString = new String(sessionKey, "UTF-8");
-                System.out.println("Session Key String: " + sessionKeyString);
+                System.out.println("1)  Session Key extracted and decrypted with server private key:\n" + sessionKeyString);
                 byte[] decodedSessionKey = Base64.getDecoder().decode(sessionKeyString);
-                System.out.println("decrypted session key: " + new String(decodedSessionKey, "UTF-8"));
+//                System.out.println("decrypted session key: " + new String(decodedSessionKey, "UTF-8"));
 
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 int pos = 0;
@@ -99,58 +99,40 @@ public class ClientThread extends Thread {
                     pos++;
                 } while (bytesRead != -1);
                 byte[] message = byteArrayOutputStream.toByteArray();
-                System.out.println("encrypted message:\n" + new String(message, "UTF-8") + "\n");
+                System.out.println("\n\n2)  Encrypted message extracted:\n" + new String(message, "UTF-8") + "\n");
 
                 SecretKey secretSessionKey = new SecretKeySpec(decodedSessionKey, 0, decodedSessionKey.length, "AES");
                 byte[] sessionMessage = null;
                 try {
                     sessionMessage = decryptZipAES(secretSessionKey, message);
-                    System.out.println(new String(sessionMessage, "UTF-8"));
+                    System.out.println("\n3)  Message decrypted using session key:\n" + new String(sessionMessage, "UTF-8"));
                 } catch (Exception ex) {
                     Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
                 byte[] uncompressedMessage = decompress(sessionMessage);
-                System.out.println("message and hash:\n" + new String(uncompressedMessage, "UTF-8"));
+                System.out.println("\n\n4)  Message decompressed resulting in plaintext message and encrypted hash:\n" + new String(uncompressedMessage, "UTF-8"));
 
-//                byteArrayOutputStream = new ByteArrayOutputStream();
-//                fileOutputStream = new FileOutputStream(FILENAME + ".zip");
-//                bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-//                bytesRead = is.read(abyte, 0, abyte.length);
-//
-//                do {
-//                    byteArrayOutputStream.write(abyte);
-//                    bytesRead = is.read(abyte);
-//                } while (bytesRead != -1);
-//                bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
-//                bufferedOutputStream.flush();
-//
-//                System.out.println("File message.zip received\n");
-//
-//                System.out.println("Decompressing file...");
-//
-//                System.out.println("message.zip decompressed successfully\n");
-                // Close the input and output streams and close the socket
                 byte[] encryptedHash = new byte[128];
                 byte[] msg = new byte[uncompressedMessage.length - 128];
                 for (int i = 0; i < 128; i++) {
                     encryptedHash[i] = uncompressedMessage[i];
                 }
-                System.out.println(new String(encryptedHash, "UTF-8"));
+                //System.out.println(new String(encryptedHash, "UTF-8"));
 
-                String decryptedHashFinal = decryptHash(publicKeyRing.get("client"),encryptedHash);
-                
+                String decryptedHashFinal = decryptHash(publicKeyRing.get("client"), encryptedHash);
+                System.out.println("\n\n5)  Hash decrypted using client public key:" + decryptedHashFinal);
+
                 for (int i = 128; i < uncompressedMessage.length; i++) {
                     msg[i - 128] = uncompressedMessage[i];
                 }
-                System.out.println(new String(msg, "UTF-8"));
-                
+
                 String sha1Hash = DigestUtils.sha1Hex(new String(msg, "UTF-8"));
-                System.out.println("\n\n\ndecryptedHashFinal:  "+decryptedHashFinal);
-                System.out.println("\nhash of message:    "+sha1Hash);
-                System.out.println("Match:  "+sha1Hash.equals(decryptedHashFinal));
-                
-                
+                System.out.println("6)  Hash of message calculated:    " + sha1Hash);
+                System.out.println("\nDoes the message Hash equal the client sent hash?:  " + sha1Hash.equals(decryptedHashFinal));
+                System.out.println("\n------------------------------------------------------------------------------------------------\n");
+                System.out.println("Message Verified, the original message was: \n\"" + new String(msg, "UTF-8")+"\"\n\n");
+System.out.println("---------------------------------------------------------------------------------------------------\n\nReady For New Connection!\n\n");
                 synchronized (this) {
                     for (int i = 0; i < maxClientsCount; i++) {
                         if (threads[i] == this) {
@@ -238,21 +220,6 @@ public class ClientThread extends Thread {
      * decompressed files
      */
     public byte[] decompress(byte[] data) throws DataFormatException, IOException {
-//        ByteArrayOutputStream baos = null;
-//        Inflater iflr = new Inflater();
-//        iflr.setInput(compressedByteArray);
-//        baos = new ByteArrayOutputStream();
-//        byte[] tmp = new byte[1024];
-//        try {
-//            while (!iflr.finished()) {
-//                int size = iflr.inflate(tmp);
-//                baos.write(tmp, 0, size);
-//            }
-//            baos.close();
-//        } catch (Exception e) {
-////            e.printStackTrace();
-//        }
-
         Inflater inflater = new Inflater();
         inflater.setInput(data);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
@@ -274,8 +241,6 @@ public class ClientThread extends Thread {
         SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
         IvParameterSpec ivParams = new IvParameterSpec(iv);
         cipher.init(Cipher.DECRYPT_MODE, sessionKey, ivParams);
-
-        //byte[] decodedBytes = new BASE64Decoder().decodeBuffer(encrypted);
         byte[] original = cipher.doFinal(encrypted);
         return original;
     }
