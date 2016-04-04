@@ -122,6 +122,8 @@ public class TCPClient {
 
                 byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
 
+                byte[] messageAndHash = combineByteArrs(message.getBytes(),0,encryptedHash,128);
+                
                 System.out.println("2) Encrypted SHA-1 hash:");
                 System.out.println(new String(encryptedHash, "UTF-8") + "\n");
 
@@ -144,20 +146,22 @@ public class TCPClient {
                 fileInputStream = new FileInputStream(compressedFile);
                 bufferedInputStream = new BufferedInputStream(fileInputStream);
                 bufferedInputStream.read(buffer, 0, buffer.length);
-
-                String AESencryptedZip = encryptZipAES(sessionKey, buffer);
-                System.out.println("5) Compressed file encrypted:\n" + AESencryptedZip + "\n");
+                byte[] encrypted = encryptZipAES(sessionKey, buffer);
+                String encryptedValue = new BASE64Encoder().encode(encrypted);
+                System.out.println("5) Compressed file encrypted:\n" + encryptedValue + "\n");
 
                 String sessionKeyString = Base64.getEncoder().encodeToString(sessionKey.getEncoded());
-                
+
                 byte[] encryptedSessionKey = encryptSessionKey(publicKeyRing.get("server"), sessionKeyString);
-                
-                System.out.println("6) Session key encrypted using the sercer's "
+
+                System.out.println("6) Session key encrypted using the server's "
                         + "public key:\n" + new String(encryptedSessionKey, "UTF-8") + "\n");
-                
+
+                byte[] finalMessage = combineByteArrs(encrypted,0,encryptedSessionKey,128);
+                System.out.println("\n\n final Message:\n"+new String(finalMessage, "UTF-8"));
                 fos.write(encryptedSessionKey);
                 fos.close();
-                
+
                 System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
                 os.write(buffer, 0, buffer.length);
                 os.flush();
@@ -212,10 +216,10 @@ public class TCPClient {
         }
         return cipherText;
     }
-    
+
     /**
-     * Method used to encrypt the session key using the RSA algorithm in
-     * ECB mode with PKCS1 padding.
+     * Method used to encrypt the session key using the RSA algorithm in ECB
+     * mode with PKCS1 padding.
      *
      * @param privateKey Client's private key used to encrypt the hash
      * @param hash Hash to be encrypted
@@ -277,7 +281,7 @@ public class TCPClient {
         }
         return null;
     }
-    
+
     private static SecretKey generateAESSessionKey() {
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
@@ -288,16 +292,24 @@ public class TCPClient {
         }
     }
 
-    public static String encryptZipAES(SecretKey sessionKey, byte[] buffer) throws Exception {
+    public static byte[] encryptZipAES(SecretKey sessionKey, byte[] buffer) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
         SecureRandom randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
         byte[] iv = new byte[cipher.getBlockSize()];
         randomSecureRandom.nextBytes(iv);
         IvParameterSpec ivParams = new IvParameterSpec(iv);
-        cipher.init(Cipher.ENCRYPT_MODE, sessionKey,ivParams);
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey, ivParams);
         byte[] encrypted = cipher.doFinal(buffer);
-        String encryptedValue = new BASE64Encoder().encode(encrypted);
-        return encryptedValue;
+        return encrypted;
     }
+
+    public static byte[] combineByteArrs(byte[] src,int srcpos, byte[] dest,int dstpos) {
+        byte[] temp = new byte[src.length + dest.length];
+        System.out.println(temp.length);
+        System.arraycopy(dest, 0, temp, 0, dstpos);
+        System.arraycopy(src, srcpos, temp, dstpos, src.length);
+        return temp;
+    }
+
 }
