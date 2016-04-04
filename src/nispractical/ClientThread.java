@@ -1,6 +1,5 @@
 package nispractical;
 
-import com.sun.corba.se.impl.encoding.BufferManagerWriteCollect;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -73,14 +72,14 @@ public class ClientThread extends Thread {
 
         try {
             // Create input and output streams for this client.
-            inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            //inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintStream(clientSocket.getOutputStream());
             is = clientSocket.getInputStream();
 
             while (true) {
-                clientMessage = inFromClient.readLine();
+                //clientMessage = inFromClient.readLine();
                 
-                byte[] buffer = new byte[FILE_SIZE];
+                byte[] buffer = new byte[494];
                 fileOutputStream = new FileOutputStream(FILENAME + ".zip");
                 bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
                 bytesRead = is.read(buffer, 0, buffer.length);
@@ -88,10 +87,10 @@ public class ClientThread extends Thread {
                 
                 do {
                     bytesRead = is.read(buffer, current, (buffer.length - current));         
-                    if (bytesRead >= 0) {
+                    if (bytesRead > 0) {
                         current += bytesRead;
                     }
-                } while(bytesRead > -1);
+                } while(bytesRead > 0);
                 
                 bufferedOutputStream.write(buffer, 0, current);
                 bufferedOutputStream.flush();
@@ -128,7 +127,7 @@ public class ClientThread extends Thread {
             }
 
             // Close the input and output streams and close the socket
-            inFromClient.close();
+            //inFromClient.close();
             outToClient.close();
             bufferedOutputStream.close();
             fileOutputStream.close();
