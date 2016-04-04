@@ -15,9 +15,11 @@ import java.net.UnknownHostException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -75,6 +77,7 @@ public class TCPClient {
         BufferedReader inFromServer = null;
         FileInputStream fileInputStream = null;
         FileOutputStream fileOutputStream = null;
+        FileOutputStream fos = null;
         BufferedInputStream bufferedInputStream = null;
         OutputStream os = null;
 
@@ -100,6 +103,7 @@ public class TCPClient {
             try {
                 Scanner read = new Scanner(new File(FILENAME + ".txt"));
                 fileOutputStream = new FileOutputStream(FILENAME + ".sig");
+                fos = new FileOutputStream("hi.sig");
                 List<File> files = new ArrayList<File>();
 
                 while (read.hasNext()) {
@@ -134,7 +138,7 @@ public class TCPClient {
                         + "to '" + compressedFile.getName() + "' successfully\n");
 
                 SecretKey sessionKey = generateAESSessionKey();
-                System.out.println("4) Session key and IV generated");
+                System.out.println("4) Session key and IV generated\n");
                 byte[] buffer = new byte[(int) compressedFile.length()];
 
                 fileInputStream = new FileInputStream(compressedFile);
@@ -142,8 +146,18 @@ public class TCPClient {
                 bufferedInputStream.read(buffer, 0, buffer.length);
 
                 String AESencryptedZip = encryptZipAES(sessionKey, buffer);
-                System.out.println("Compressed file encrypted:\n" + AESencryptedZip + "\n");
+                System.out.println("5) Compressed file encrypted:\n" + AESencryptedZip + "\n");
 
+                String sessionKeyString = Base64.getEncoder().encodeToString(sessionKey.getEncoded());
+                
+                byte[] encryptedSessionKey = encryptSessionKey(publicKeyRing.get("server"), sessionKeyString);
+                
+                System.out.println("6) Session key encrypted using the sercer's "
+                        + "public key:\n" + new String(encryptedSessionKey, "UTF-8") + "\n");
+                
+                fos.write(encryptedSessionKey);
+                fos.close();
+                
                 System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
                 os.write(buffer, 0, buffer.length);
                 os.flush();
@@ -193,6 +207,35 @@ public class TCPClient {
             cipher.init(cipher.ENCRYPT_MODE, privKey);
 
             cipherText = cipher.doFinal(hash.getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cipherText;
+    }
+    
+        /**
+     * Method used to encrypt the hash of the message using the RSA algorithm in
+     * ECB mode with PKCS1 padding.
+     *
+     * @param privateKey Client's private key used to encrypt the hash
+     * @param hash Hash to be encrypted
+     * @return Byte array of RSA encrypted hash
+     */
+    private static byte[] encryptSessionKey(String publicKey, String sessionKey) {
+        byte[] cipherText = null;
+
+        Security.addProvider(new BouncyCastleProvider());
+
+        try {
+            byte[] decodedKeyBytes = Base64.getDecoder().decode(publicKey);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey privKey = keyFactory.generatePublic(keySpec);
+
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC");
+            cipher.init(cipher.ENCRYPT_MODE, privKey);
+
+            cipherText = cipher.doFinal(sessionKey.getBytes());
         } catch (Exception e) {
             e.printStackTrace();
         }
