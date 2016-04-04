@@ -1,10 +1,13 @@
 package nispractical;
 
+import com.sun.corba.se.impl.encoding.BufferManagerWriteCollect;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
@@ -32,12 +35,15 @@ public class ClientThread extends Thread {
     private BufferedReader inFromClient = null;
     private PrintStream outToClient = null;
     private Socket clientSocket = null;
+    private InputStream is = null;
+    private FileOutputStream fileOutputStream = null;
+    private BufferedOutputStream bufferedOutputStream = null;
     private final ClientThread[] threads;
     private int maxClientsCount;
     
-    //private DataInputStream is = null;
-    
     private static final String FILENAME = "messages/message";
+    
+    private final static int FILE_SIZE = 6022386; // File size temporarily hard-coded
 
     private final Map<String, String> publicKeyRing;
     private final Map<String, String> privateKeyRing;
@@ -61,16 +67,36 @@ public class ClientThread extends Thread {
 
         int maxClientsCount = this.maxClientsCount;
         ClientThread[] threads = this.threads;
+        
+        int bytesRead;
+        int current = 0;
 
         try {
             // Create input and output streams for this client.
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintStream(clientSocket.getOutputStream());
-            
-            //is = new DataInputStream(clientSocket.getInputStream());
+            is = clientSocket.getInputStream();
 
             while (true) {
                 clientMessage = inFromClient.readLine();
+                
+                byte[] buffer = new byte[FILE_SIZE];
+                fileOutputStream = new FileOutputStream(FILENAME + ".zip");
+                bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+                bytesRead = is.read(buffer, 0, buffer.length);
+                current = bytesRead;
+                
+                do {
+                    bytesRead = is.read(buffer, current, (buffer.length - current));         
+                    if (bytesRead >= 0) {
+                        current += bytesRead;
+                    }
+                } while(bytesRead > -1);
+                
+                bufferedOutputStream.write(buffer, 0, current);
+                bufferedOutputStream.flush();
+                
+                System.out.println("File message.zip downloaded (" + current + " bytes read)");
                 
                 //int length = is.readInt();
                 //byte[] encryptedHash = null;
@@ -104,10 +130,12 @@ public class ClientThread extends Thread {
             // Close the input and output streams and close the socket
             inFromClient.close();
             outToClient.close();
+            bufferedOutputStream.close();
+            fileOutputStream.close();
+            is.close();
             clientSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();
-                    
+            e.printStackTrace();          
         }
     }
     
