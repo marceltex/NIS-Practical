@@ -1,12 +1,14 @@
 package nispractical;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -14,10 +16,14 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -32,6 +38,8 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
+    
+    private static final String FILENAME = "messages/message";
 
     private static final Map<String, String> publicKeyRing;
 
@@ -54,11 +62,14 @@ public class TCPClient {
     public static void main(String[] args) {
         String message = "";
         String modifiedMessage;
-
+        
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
-        //DataOutputStream os = null;
+        FileInputStream fileInputStream = null;
+        FileOutputStream fileOutputStream = null;
+        BufferedInputStream bufferedInputStream = null;
+        OutputStream os = null;
 
         // Open a socket on port 2222. Open the input and output streams
         try {
@@ -69,7 +80,7 @@ public class TCPClient {
 
             outToServer = new PrintStream(clientSocket.getOutputStream());
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            //os = new DataOutputStream(clientSocket.getOutputStream());
+            os = clientSocket.getOutputStream();
         } catch (UnknownHostException e) {
             System.err.println("Can't find the host");
         } catch (IOException e) {
@@ -80,8 +91,9 @@ public class TCPClient {
         // If statement ensures that everything has been initialised successfully
         if (clientSocket != null && outToServer != null && inFromServer != null) {
             try {
-                Scanner read = new Scanner(new File("messages/message.txt"));
-                FileOutputStream fileOutputStream = new FileOutputStream("messages/message.sig");
+                Scanner read = new Scanner(new File(FILENAME + ".txt"));
+                fileOutputStream = new FileOutputStream(FILENAME + ".sig");
+                List<File> files = new ArrayList<File>();
 
                 while (read.hasNext()) {
                     message += read.nextLine();
@@ -105,6 +117,25 @@ public class TCPClient {
                 fileOutputStream.write(encryptedHash);
                 
                 fileOutputStream.close();
+                
+                files.add(new File(FILENAME + ".txt"));
+                files.add(new File(FILENAME + ".sig"));
+                
+                File compressedFile = compress(files, FILENAME + ".zip");
+                
+                System.out.println("3) Message and message sugnature compressed "
+                        + "to '" + compressedFile.getName() + "' successfully\n");
+                
+                byte[] buffer = new byte[(int)compressedFile.length()];
+                
+                fileInputStream = new FileInputStream(compressedFile);
+                bufferedInputStream = new BufferedInputStream(fileInputStream);
+                bufferedInputStream.read(buffer, 0, buffer.length);
+                
+                System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
+                os.write(buffer, 0, buffer.length);
+                os.flush();
+                System.out.println("File sent to server successfully");
 //                os.writeInt(encryptedHash.length);
 //                os.write(encryptedHash);
                 
@@ -116,7 +147,10 @@ public class TCPClient {
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
-                //os.close();
+                fileInputStream.close();
+                fileOutputStream.close();
+                bufferedInputStream.close();
+                os.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
@@ -158,5 +192,42 @@ public class TCPClient {
             e.printStackTrace();
         }
         return cipherText;
+    }
+    
+    
+    /**
+     * Method used to compress message and the message's signature.
+     * Adapted from http://stackoverflow.com/questions/16546992/how-to-create-a-zip-file-of-multiple-image-files
+     * 
+     * @param files List of files to be compressed
+     * @param filename Name of the zip file to store the compressed files
+     * @return Zip file storing the compressed files
+     */
+    public static File compress(List<File> files, String filename) {
+        File zipFile = new File(filename);
+        
+        // Buffer required to read files
+        byte[] buffer = new byte[1024];
+        try {
+            ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFile));
+            // Compress the files
+            for (int i = 0; i < files.size(); i++) {
+               FileInputStream fileInputStream = new FileInputStream("messages/" + files.get(i).getName());
+               
+               zipOutputStream.putNextEntry(new ZipEntry(files.get(i).getName()));
+               
+               int length;
+               while ((length = fileInputStream.read(buffer)) > 0) {
+                   zipOutputStream.write(buffer, 0, length);
+               }  
+               zipOutputStream.closeEntry();
+               fileInputStream.close();
+            }
+            zipOutputStream.close();
+            return zipFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }    
+        return null;
     }
 }
