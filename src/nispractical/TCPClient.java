@@ -123,7 +123,7 @@ public class TCPClient {
                 
                 File compressedFile = compress(files, FILENAME + ".zip");
                 
-                System.out.println("3) Message and message sugnature compressed "
+                System.out.println("3) Message and message signature compressed "
                         + "to '" + compressedFile.getName() + "' successfully\n");
                 
                 byte[] buffer = new byte[(int)compressedFile.length()];
@@ -194,7 +194,6 @@ public class TCPClient {
         }
         return cipherText;
     }
-    
     
     /**
      * Method used to compress message and the message's signature.
