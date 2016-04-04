@@ -38,7 +38,7 @@ public class TCPClient {
 
     private static final String IP_ADDRESS = "localhost";
     private static final int PORT = 2222;
-    
+
     private static final String FILENAME = "messages/message";
 
     private static final Map<String, String> publicKeyRing;
@@ -62,7 +62,7 @@ public class TCPClient {
     public static void main(String[] args) {
         String message = "";
         String modifiedMessage;
-        
+
         Socket clientSocket = null;
         PrintStream outToServer = null;
         BufferedReader inFromServer = null;
@@ -108,50 +108,48 @@ public class TCPClient {
                 String sha1Hash = DigestUtils.sha1Hex(message);
 
                 System.out.println("1) SHA-1 hash of the message: " + sha1Hash + "\n");
-                
+
                 byte[] encryptedHash = encryptHash(privateKeyRing.get("client"), sha1Hash);
-                
+
                 System.out.println("2) Encrypted SHA-1 hash:");
                 System.out.println(new String(encryptedHash, "UTF-8") + "\n");
-                
+
                 fileOutputStream.write(encryptedHash);
-                
+
                 fileOutputStream.close();
-                
+
                 files.add(new File(FILENAME + ".txt"));
                 files.add(new File(FILENAME + ".sig"));
-                
+
                 File compressedFile = compress(files, FILENAME + ".zip");
-                
+
                 System.out.println("3) Message and message signature compressed "
                         + "to '" + compressedFile.getName() + "' successfully\n");
-                
-                byte[] buffer = new byte[(int)compressedFile.length()];
-                
+
+                byte[] buffer = new byte[(int) compressedFile.length()];
+
                 fileInputStream = new FileInputStream(compressedFile);
                 bufferedInputStream = new BufferedInputStream(fileInputStream);
                 bufferedInputStream.read(buffer, 0, buffer.length);
-                
+
                 System.out.println("Sending " + compressedFile.getName() + " (" + buffer.length + " bytes)\n");
                 os.write(buffer, 0, buffer.length);
                 os.flush();
                 System.out.println("File sent to server successfully");
                 os.close();
-               
+
 //                os.writeInt(encryptedHash.length);
 //                os.write(encryptedHash);
-                
 //                outToServer.println(message);
 //                modifiedMessage = inFromServer.readLine();
 //
 //                System.out.println("FROM SERVER: " + modifiedMessage);
-
                 // Close output/input streams and socket
                 outToServer.close();
                 inFromServer.close();
                 fileInputStream.close();
                 fileOutputStream.close();
-                bufferedInputStream.close();    
+                bufferedInputStream.close();
                 clientSocket.close();
             } catch (FileNotFoundException e) {
                 System.err.println("'message.txt' not found in messages directory");
@@ -194,40 +192,40 @@ public class TCPClient {
         }
         return cipherText;
     }
-    
+
     /**
-     * Method used to compress message and the message's signature.
-     * Adapted from http://stackoverflow.com/questions/16546992/how-to-create-a-zip-file-of-multiple-image-files
-     * 
+     * Method used to compress message and the message's signature. Adapted from
+     * http://stackoverflow.com/questions/16546992/how-to-create-a-zip-file-of-multiple-image-files
+     *
      * @param files List of files to be compressed
      * @param filename Name of the zip file to store the compressed files
      * @return Zip file storing the compressed files
      */
     public static File compress(List<File> files, String filename) {
         File zipFile = new File(filename);
-        
+
         // Buffer required to read files
         byte[] buffer = new byte[1024];
         try {
             ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFile));
             // Compress the files
             for (int i = 0; i < files.size(); i++) {
-               FileInputStream fileInputStream = new FileInputStream("messages/" + files.get(i).getName());
-               
-               zipOutputStream.putNextEntry(new ZipEntry(files.get(i).getName()));
-               
-               int length;
-               while ((length = fileInputStream.read(buffer)) > 0) {
-                   zipOutputStream.write(buffer, 0, length);
-               }  
-               zipOutputStream.closeEntry();
-               fileInputStream.close();
+                FileInputStream fileInputStream = new FileInputStream("messages/" + files.get(i).getName());
+
+                zipOutputStream.putNextEntry(new ZipEntry(files.get(i).getName()));
+
+                int length;
+                while ((length = fileInputStream.read(buffer)) > 0) {
+                    zipOutputStream.write(buffer, 0, length);
+                }
+                zipOutputStream.closeEntry();
+                fileInputStream.close();
             }
             zipOutputStream.close();
             return zipFile;
         } catch (IOException e) {
             e.printStackTrace();
-        }    
+        }
         return null;
     }
 }

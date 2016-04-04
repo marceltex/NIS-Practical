@@ -90,7 +90,13 @@ public class ClientThread extends Thread {
                 bufferedOutputStream.write(byteArrayOutputStream.toByteArray());
                 bufferedOutputStream.flush();
 
-                System.out.println("File message.zip downloaded");
+                System.out.println("File message.zip downloaded\n");
+
+                System.out.println("Decompressing file...");
+
+                decompress(FILENAME + ".zip", "message");
+
+                System.out.println("message.zip decompressed successfully\n");
 
                 synchronized (this) {
                     for (int i = 0; i < maxClientsCount; i++) {
@@ -99,7 +105,7 @@ public class ClientThread extends Thread {
                         }
                     }
                 }
-                
+
                 System.out.println("Received: " + clientMessage);
 
                 capitalisedMessage = clientMessage.toUpperCase();
@@ -155,7 +161,7 @@ public class ClientThread extends Thread {
      * @param outputFolderName Name of the folder in which to store the
      * decompressed files
      */
-    public static void deccompress(String zipFilename, String outputFolderName) {
+    public static void decompress(String zipFilename, String outputFolderName) {
         byte[] buffer = new byte[1024];
 
         try {
