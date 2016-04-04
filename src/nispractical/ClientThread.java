@@ -31,8 +31,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  */
 public class ClientThread extends Thread {
 
-    private BufferedReader inFromClient = null;
-    private PrintStream outToClient = null;
     private Socket clientSocket = null;
     private InputStream is = null;
     private FileOutputStream fileOutputStream = null;
@@ -60,9 +58,6 @@ public class ClientThread extends Thread {
     }
 
     public void run() {
-        String clientMessage = "hi";
-        String capitalisedMessage;
-
         int maxClientsCount = this.maxClientsCount;
         ClientThread[] threads = this.threads;
 
@@ -70,13 +65,10 @@ public class ClientThread extends Thread {
         byte[] abyte = new byte[1];
 
         try {
-            // Create input and output streams for this client.
-            //inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            outToClient = new PrintStream(clientSocket.getOutputStream());
+            // Create input stream for this client.
             is = clientSocket.getInputStream();
 
             if (is != null) {
-                //clientMessage = inFromClient.readLine();
                 byteArrayOutputStream = new ByteArrayOutputStream();
                 fileOutputStream = new FileOutputStream(FILENAME + ".zip");
                 bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
@@ -105,15 +97,8 @@ public class ClientThread extends Thread {
                         }
                     }
                 }
-
-                System.out.println("Received: " + clientMessage);
-
-                capitalisedMessage = clientMessage.toUpperCase();
-                outToClient.println(capitalisedMessage);
             }
             // Close the input and output streams and close the socket
-            //inFromClient.close();
-            outToClient.close();
             bufferedOutputStream.close();
             fileOutputStream.close();
             is.close();
